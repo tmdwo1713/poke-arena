@@ -54,6 +54,28 @@ function typeEffect(atkType, defTypes) {
   return m;
 }
 
+// 레전드플레이트: 심판의뭉치는 상대에게 가장 잘 통하는 타입으로 맞춘다.
+function bestPlateType(defTypes) {
+  let best = 'normal', score = -1;
+  for (const t of Object.keys(TYPES)) {
+    if (t === 'none') continue;
+    const eff = typeEffect(t, defTypes);
+    if (eff > score) { score = eff; best = t; }
+  }
+  return best;
+}
+function plateAttackType(srcMon, mv, defMon) {
+  if (!srcMon || srcMon.ability !== 'legendplate' || !mv || mv.type === 'none') return null;
+  if (mv.id === 'judgment') return defMon ? bestPlateType(defMon.sp.types) : (srcMon.sp.plate || 'normal');
+  return mv.type;
+}
+const ARCEUS_SPRITE = {
+  normal: '493', fire: '493-fire', water: '493-water', electric: '493-electric', grass: '493-grass',
+  ice: '493-ice', fighting: '493-fighting', poison: '493-poison', ground: '493-ground', flying: '493-flying',
+  psychic: '493-psychic', bug: '493-bug', rock: '493-rock', ghost: '493-ghost', dragon: '493-dragon',
+  dark: '493-dark', steel: '493-steel', fairy: '493-fairy',
+};
+
 const STATUS = {
   brn: { ko: '화상', color: '#f08030' },
   par: { ko: '마비', color: '#e8b800' },
@@ -144,7 +166,7 @@ const MOVES = {
   aquajet:      { name: '아쿠아제트',   type: 'water',    cat: 'phy', power: 40,  pp: 20, cd: 0.8, kind: 'dash',  dist: 170, speed: 1300 },
   liquidation:  { name: '아쿠아브레이크', type: 'water',  cat: 'phy', power: 85,  pp: 10, cd: 1.4, kind: 'melee', reach: 70, arc: 1.6 },
   crabhammer:   { name: '집게햄머',     type: 'water',    cat: 'phy', power: 100, pp: 10, cd: 2.0, kind: 'melee', reach: 66, arc: 1.3, critBoost: true },
-  watershuriken:{ name: '물수리검',     type: 'water',    cat: 'spe', power: 30,  pp: 20, cd: 1.0, kind: 'proj',  speed: 820, r: 9, range: 540, count: 3, spread: .16, multiHit: true, fx: 'star', sig: true },
+  watershuriken:{ name: '물수리검',     type: 'water',    cat: 'spe', power: 30,  pp: 20, cd: 1.0, kind: 'proj',  speed: 820, r: 9, range: 540, count: 3, spread: .16, multiHit: true, rollHits: true, fx: 'star', bond: true, sig: true },
   originpulse:  { name: '근원의파동',   type: 'water',    cat: 'spe', power: 110, pp: 10, cd: 3.0, kind: 'proj',  speed: 620, r: 12, range: 540, count: 5, spread: .45, pulse: true, sig: true },
 
   // 얼음
@@ -248,7 +270,7 @@ const MOVES = {
   // 바위
   stoneedge:    { name: '스톤에지',     type: 'rock',     cat: 'phy', power: 100, pp: 5,  cd: 2.6, kind: 'proj',  speed: 720, r: 13, range: 520, critBoost: true, fx: 'rock' },
   rockslide:    { name: '스톤샤워',     type: 'rock',     cat: 'phy', power: 75,  pp: 10, cd: 2.2, kind: 'target', delay: .65, radius: 82, flinch: true, fx: 'rock' },
-  rockblast:    { name: '락블레스트',   type: 'rock',     cat: 'phy', power: 25,  pp: 10, cd: 1.5, kind: 'proj',  speed: 680, r: 10, range: 480, count: 4, spread: .35, multiHit: true, fx: 'rock' },
+  rockblast:    { name: '락블레스트',   type: 'rock',     cat: 'phy', power: 25,  pp: 10, cd: 1.5, kind: 'proj',  speed: 680, r: 10, range: 480, count: 4, spread: .35, multiHit: true, rollHits: true, fx: 'rock' },
   headsmash:    { name: '양날박치기',   type: 'rock',     cat: 'phy', power: 150, pp: 5,  cd: 4.0, kind: 'dash',  dist: 260, speed: 1000, recoil: .5, kb: 560 },
   powergem:     { name: '파워젬',       type: 'rock',     cat: 'spe', power: 80,  pp: 20, cd: 1.5, kind: 'proj',  speed: 620, r: 13, range: 540, fx: 'rock' },
 
@@ -268,8 +290,8 @@ const MOVES = {
   spiritbreak:  { name: '소울브레이크', type: 'fairy',    cat: 'phy', power: 75,  pp: 15, cd: 1.3, kind: 'melee', reach: 68, arc: 1.5 },
   superfang:    { name: '분노의앞니',   type: 'normal',   cat: 'phy', power: 1,   pp: 10, cd: 2.8, kind: 'melee', reach: 58, arc: 1.4, bite: true, halfHp: true },
   hypnosis:     { name: '최면술',       type: 'psychic',  cat: 'spe', power: 0,   pp: 20, cd: 3.5, kind: 'target', delay: .5, radius: 48, status: ['frz', 1], statusOnly: true },
-  iciclespear:  { name: '고드름침',     type: 'ice',      cat: 'phy', power: 25,  pp: 30, cd: 1.4, kind: 'proj',  speed: 780, r: 8, range: 460, count: 5, spread: .4, multiHit: true },
-  bulletseed:   { name: '기관총',       type: 'grass',    cat: 'phy', power: 25,  pp: 30, cd: 1.4, kind: 'proj',  speed: 780, r: 8, range: 480, count: 5, spread: .35, multiHit: true, fx: 'leaf' },
+  iciclespear:  { name: '고드름침',     type: 'ice',      cat: 'phy', power: 25,  pp: 30, cd: 1.4, kind: 'proj',  speed: 780, r: 8, range: 460, count: 5, spread: .4, multiHit: true, rollHits: true },
+  bulletseed:   { name: '씨기관총',     type: 'grass',    cat: 'phy', power: 25,  pp: 30, cd: 1.4, kind: 'proj',  speed: 780, r: 8, range: 480, count: 5, spread: .35, multiHit: true, rollHits: true, fx: 'leaf' },
   rocktomb:     { name: '암석봉인',     type: 'rock',     cat: 'phy', power: 60,  pp: 15, cd: 1.4, kind: 'proj',  speed: 560, r: 14, range: 480, fx: 'rock' },
   seismictoss:  { name: '지구던지기',   type: 'fighting', cat: 'phy', power: 1,   pp: 20, cd: 1.8, kind: 'melee', reach: 66, arc: 1.5, levelDmg: true },
   voltswitch:   { name: '볼트체인지',   type: 'electric', cat: 'spe', power: 70,  pp: 20, cd: 1.6, kind: 'proj',  speed: 640, r: 12, range: 520, fx: 'bolt' },
@@ -299,8 +321,45 @@ const MOVES = {
   secretsword:  { name: '신비의칼',     type: 'fighting', cat: 'spe', power: 85,  pp: 10, cd: 1.6, kind: 'proj',  speed: 700, r: 10, range: 540, sig: true },
   electrodrift: { name: '일렉트로드리프트', type: 'electric', cat: 'spe', power: 100, pp: 5, cd: 2.2, kind: 'dash', dist: 260, speed: 1200, sig: true },
   dynamaxcannon:{ name: '다이맥스포',   type: 'dragon',   cat: 'spe', power: 100, pp: 5,  cd: 2.4, kind: 'beam',  charge: .3, width: 40, length: 760, sig: true },
-  greysword:    { name: '그레이소드',   type: 'steel',    cat: 'phy', power: 100, pp: 8,  cd: 1.7, kind: 'melee', reach: 92, arc: 1.7, kb: 420, sig: true },
+  greysword:    { name: '그레이소드',   type: 'fire',     cat: 'phy', power: 100, pp: 8,  cd: 1.7, kind: 'melee', reach: 92, arc: 1.7, kb: 420, sig: true },
+  alldelete:    { name: '올 딜리트',    type: 'fire',     cat: 'spe', power: 150, pp: 5,  cd: 5.0, kind: 'beam',  charge: .5, width: 42, length: 740, ignoresAbility: true, sig: true },
   garurucannon: { name: '가루루포',     type: 'ice',      cat: 'spe', power: 110, pp: 8,  cd: 2.2, kind: 'beam',  charge: .3, width: 26, length: 640, sig: true },
+  meteorassault:{ name: '스타어설트', type: 'fighting', cat: 'phy', power: 150, pp: 5, cd: 4.2, kind: 'melee', reach: 96, arc: 1.4, kb: 520, selfStun: .85, sig: true },
+  fishiousrend: { name: '아가미물기', type: 'water', cat: 'phy', power: 85, pp: 10, cd: 1.6, kind: 'dash', dist: 230, speed: 1100, kb: 420, bite: true, first: true, sig: true },
+  catastropika: { name: '필살피카슛', type: 'electric', cat: 'phy', power: 210, pp: 1, cd: 0, kind: 'dash', dist: 280, speed: 1400, kb: 640, z: true },
+  tenmillionvolt:{ name: '1000만볼트', type: 'electric', cat: 'spe', power: 195, pp: 1, cd: 0, kind: 'beam', charge: .4, width: 64, length: 800, critBoost: true, fx: 'bolt', z: true },
+  pulverizingpancake: { name: '판케익부수기', type: 'normal', cat: 'phy', power: 210, pp: 1, cd: 0, kind: 'dash', dist: 240, speed: 780, kb: 700, selfStun: .55, z: true },
+  letsnuggleforever: { name: '투게더폴', type: 'fairy', cat: 'phy', power: 190, pp: 1, cd: 0, kind: 'melee', reach: 96, arc: 2.4, kb: 480, z: true },
+  sinisterarrowraid: { name: '섀도애로우즈스트라이크', type: 'ghost', cat: 'phy', power: 180, pp: 1, cd: 0, kind: 'proj', speed: 860, r: 14, range: 640, z: true },
+  maliciousmoonsault: { name: '하이퍼다크크러셔', type: 'dark', cat: 'phy', power: 180, pp: 1, cd: 0, kind: 'dash', dist: 260, speed: 1100, kb: 560, z: true },
+  oceanicoperetta: { name: '해원의아리아', type: 'water', cat: 'spe', power: 195, pp: 1, cd: 0, kind: 'target', delay: .55, radius: 130, z: true },
+  clangoroussoulblaze: { name: '브레이징소울비트', type: 'dragon', cat: 'spe', power: 185, pp: 1, cd: 0, kind: 'nova', radius: 170, z: true },
+  genesissupernova: { name: '오리진즈슈퍼노바', type: 'psychic', cat: 'spe', power: 185, pp: 1, cd: 0, kind: 'nova', radius: 180, z: true },
+  searingsunrazesmash: { name: '선샤인스매셔', type: 'steel', cat: 'phy', power: 200, pp: 1, cd: 0, kind: 'dash', dist: 280, speed: 1300, kb: 620, ignoresAbility: true, z: true },
+  menacingmoonrazemaelstrom: { name: '문라이트블래스터', type: 'ghost', cat: 'spe', power: 200, pp: 1, cd: 0, kind: 'beam', charge: .35, width: 48, length: 760, ignoresAbility: true, z: true },
+  naturesmadness: { name: '자연의분노', type: 'fairy', cat: 'spe', power: 1, pp: 10, cd: 2.2, kind: 'proj', speed: 620, r: 16, range: 520, halfHp: true, sig: true },
+  guardianofalola: { name: '알로라의수호자', type: 'fairy', cat: 'spe', power: 1, pp: 1, cd: 0, kind: 'target', delay: .55, radius: 140, hpRatio: 0.75, z: true },
+};
+
+// 전용 Z기술. 메가·거다이맥스와 따로, 팀당 1번.
+const Z_MOVES = {
+  pikachu: 'catastropika',
+  ashpikachu: 'tenmillionvolt',
+  snorlax: 'pulverizingpancake',
+  mimikyu: 'letsnuggleforever',
+  decidueye: 'sinisterarrowraid',
+  incineroar: 'maliciousmoonsault',
+  primarina: 'oceanicoperetta',
+  kommoo: 'clangoroussoulblaze',
+  mew: 'genesissupernova',
+  solgaleo: 'searingsunrazesmash',
+  necrozmadusk: 'searingsunrazesmash',
+  lunala: 'menacingmoonrazemaelstrom',
+  necrozmadawn: 'menacingmoonrazemaelstrom',
+  tapukoko: 'guardianofalola',
+  tapulele: 'guardianofalola',
+  tapubulu: 'guardianofalola',
+  tapufini: 'guardianofalola',
 };
 
 const ABILITIES = {
@@ -338,10 +397,16 @@ const ABILITIES = {
   sandstream:   { name: '모래날림',     desc: '등장하면 25초간 모래바람. 바위·땅·강철 외에는 지속 데미지, 바위 타입은 특방 1.5배.' },
   drought:      { name: '가뭄',         desc: '등장하면 25초간 쾌청. 불꽃 1.5배, 물 0.5배, 솔라빔 즉시 발사.' },
   drizzle:      { name: '잔비',         desc: '등장하면 25초간 비. 물 1.5배, 불꽃 0.5배.' },
+  electricsurge:{ name: '일렉트릭메이커', desc: '등장하면 25초간 일렉트릭필드. 땅에 있는 포켓몬의 전기 기술 위력 1.3배.' },
+  psychicsurge: { name: '사이코메이커', desc: '등장하면 25초간 사이코필드. 땅에 있는 포켓몬의 에스퍼 기술 위력 1.3배.' },
+  grassysurge:  { name: '그래스메이커', desc: '등장하면 25초간 그래스필드. 땅에 있는 포켓몬의 풀 기술 위력 1.3배.' },
+  mistysurge:   { name: '미스트메이커', desc: '등장하면 25초간 미스트필드. 땅에 있는 포켓몬은 상태이상에 걸리지 않고, 드래곤 기술을 절반만 받는다.' },
   trace:        { name: '트레이스',     desc: '등장할 때 상대의 특성을 복사한다 (일부 특성 제외).' },
   synchronize:  { name: '싱크로',       desc: '상대 때문에 화상·마비·독에 걸리면 상대도 같은 상태가 된다.' },
   regenerator:  { name: '재생력',       desc: '교체로 물러나면 HP를 1/3 회복한다.' },
   multitype:    { name: '멀티타입',     desc: '상태이상에 걸리지 않는다.' },
+  legendplate:  { name: '레전드플레이트', desc: '기술을 쓰면 그 타입으로 변한다. 심판의뭉치는 상대 약점에 맞춰지고, 상태이상에 걸리지 않는다.' },
+  neuroforce:   { name: '브레인포스',   desc: '효과가 굉장한 기술의 위력이 1.25배.' },
   lightningrod: { name: '피뢰침',       desc: '전기 기술을 받지 않고, 맞으면 특공이 1.5배가 된다.' },
   motordrive:   { name: '전기엔진',     desc: '전기 기술을 받지 않고, 맞으면 스피드가 올라간다.' },
   sapsipper:    { name: '초식',         desc: '풀 기술을 받지 않고, 맞으면 공격이 1.5배가 된다.' },
@@ -375,7 +440,7 @@ const ABILITIES = {
   parentalbond: { name: '부자유친',     desc: '모든 공격이 두 번 맞는다 (두 번째는 위력 1/4).' },
   steadfast:    { name: '불굴의마음',   desc: '풀죽으면 스피드가 올라간다.' },
   insomnia:     { name: '불면',         desc: '잠들지 않는다. 이 게임에서는 얼음(행동불능) 상태가 되지 않는다.' },
-  skilllink:    { name: '스킬링크',     desc: '여러 발 쏘는 기술의 투사체가 2발 늘어난다.' },
+  skilllink:    { name: '스킬링크',     desc: '2~5발로 쏘는 기술은 항상 5발이 나간다. 그 외 여러 발 기술은 2발 더 나간다.' },
   solarpower:   { name: '선파워',       desc: '쾌청일 때 특공 1.5배.' },
   sandforce:    { name: '모래의힘',     desc: '모래바람일 때 바위·땅·강철 기술 위력 1.3배. 모래바람 데미지를 받지 않는다.' },
   deltastream:  { name: '델타스트림',   desc: '필드에 있는 동안 날씨를 없애고, 비행 타입의 약점을 지워 준다.' },
@@ -394,7 +459,8 @@ const ABILITIES = {
   darkaura:     { name: '다크오라',     desc: '필드의 악 기술 위력이 1.33배.' },
   orichalcumpulse:{ name: '진홍빛고동', desc: '등장하면 25초간 쾌청. 쾌청일 때 공격 1.3배.' },
   hadronengine: { name: '하드론엔진',   desc: '전기 특수 기술의 위력이 1.3배.' },
-  royalknight:  { name: '로열나이트',   desc: '강철·얼음 기술의 위력이 1.3배.' },
+  royalknight:  { name: '로열나이트',   desc: '불꽃·얼음 기술의 위력이 1.3배.' },
+  battlebond:   { name: '유대변화',     desc: '물수리검의 위력이 올라간다.' },
   tabletsofruin:{ name: '재앙의목간',   desc: '자신 외 포켓몬의 공격을 0.75배로 낮춘다.' },
   swordofruin:  { name: '재앙의검',     desc: '자신 외 포켓몬의 방어를 0.75배로 낮춘다.' },
   vesselofruin: { name: '재앙의그릇',   desc: '자신 외 포켓몬의 특수공격을 0.75배로 낮춘다.' },
@@ -416,6 +482,7 @@ const ABILITIES = {
 const POKEMON = [
   { id: 19,  key: 'rattata',   name: '꼬렛',       types: ['normal'],            base: [30, 56, 35, 25, 35, 72],     moves: ['hyperbeam', 'quickattack', 'crunch', 'facade'], extra: ['irontail', 'suckerpunch', 'shadowclaw'], fixedLevel: 100 },
   { id: 25,  key: 'pikachu',   name: '피카츄',     types: ['electric'],          base: [35, 55, 40, 50, 50, 90],     moves: ['thunderbolt', 'quickattack', 'irontail', 'thunder'] },
+  { id: 10094, key: 'ashpikachu', name: '지우피카츄', types: ['electric'],       base: [35, 55, 40, 50, 50, 90],     moves: ['thunderbolt', 'quickattack', 'irontail', 'thunder'], extra: ['wildcharge'] },
   { id: 6,   key: 'charizard', name: '리자몽',     types: ['fire', 'flying'],    base: [78, 84, 78, 109, 85, 100],   moves: ['flamethrower', 'airslash', 'dragonclaw', 'fireblast'], extra: ['earthquake', 'solarbeam', 'dragonpulse'] },
   { id: 9,   key: 'blastoise', name: '거북왕',     types: ['water'],             base: [79, 83, 100, 85, 105, 78],   moves: ['hydropump', 'surf', 'icebeam', 'bite'], extra: ['aurasphere', 'darkpulse', 'dragonpulse', 'flashcannon'] },
   { id: 3,   key: 'venusaur',  name: '이상해꽃',   types: ['grass', 'poison'],   base: [80, 82, 83, 100, 100, 80],   moves: ['razorleaf', 'sludgebomb', 'solarbeam', 'petalblizzard'], extra: ['earthquake', 'earthpower'] },
@@ -552,12 +619,86 @@ const POKEMON = [
   { id: 908, key: 'meowscarada', name: '마스카나', types: ['grass', 'dark'],     base: [76, 110, 70, 81, 70, 123],   moves: ['flowertrick', 'knockoff', 'uturn', 'playrough'], extra: ['darkpulse'] },
   { id: 911, key: 'skeledirge',name: '라우드본',   types: ['fire', 'ghost'],     base: [104, 75, 100, 110, 75, 66],  moves: ['flamethrower', 'shadowball', 'overheat', 'hex'], extra: ['solarbeam'] },
   { id: 914, key: 'quaquaval', name: '웨이니발',   types: ['water', 'fighting'], base: [85, 120, 80, 85, 75, 85],    moves: ['liquidation', 'closecombat', 'aquajet', 'icepunch'], extra: ['bravebird'] },
+  { id: 865, key: 'sirfetchd', name: '창파나이트', types: ['fighting'],          base: [62, 135, 95, 68, 82, 65],    moves: ['meteorassault', 'leafblade', 'bravebird', 'closecombat'], extra: ['knockoff', 'nightslash', 'poisonjab'] },
+  { id: 882, key: 'dracovish', name: '어래곤',     types: ['water', 'dragon'],   base: [90, 90, 100, 70, 80, 75],    moves: ['fishiousrend', 'crunch', 'outrage', 'icefang'], extra: ['psychicfangs', 'earthquake', 'liquidation', 'dragonclaw'] },
   { id: 979, key: 'annihilape',name: '저승갓숭',   types: ['fighting', 'ghost'], base: [110, 115, 80, 50, 90, 90],   moves: ['closecombat', 'shadowclaw', 'drainpunch', 'earthquake'], extra: ['icepunch'] },
   { id: 1000,key: 'gholdengo', name: '타부자고',   types: ['steel', 'ghost'],    base: [87, 60, 95, 133, 91, 84],    moves: ['makeitrain', 'shadowball', 'dazzlinggleam', 'thunderbolt'], extra: ['focusblast'] },
   { id: 959, key: 'tinkaton',  name: '두드리짱',   types: ['fairy', 'steel'],    base: [85, 75, 77, 70, 105, 94],    moves: ['gigatonhammer', 'playrough', 'knockoff', 'ironhead'], extra: ['flashcannon'] },
   { id: 937, key: 'ceruledge', name: '파라블레이즈', types: ['fire', 'ghost'],   base: [75, 125, 80, 60, 100, 85],   moves: ['flareblitz', 'shadowclaw', 'closecombat', 'shadowsneak'], extra: ['ironhead'] },
   { id: 936, key: 'armarouge', name: '카디나르마', types: ['fire', 'psychic'],   base: [85, 60, 100, 125, 80, 75],   moves: ['flamethrower', 'psychic', 'aurasphere', 'flashcannon'], extra: ['overheat'] },
 
+  // 최종 진화체
+  { id: 36,  key: 'clefable',  name: '픽시',       types: ['fairy'],             base: [95, 70, 73, 95, 90, 60],     moves: ['moonblast', 'dazzlinggleam', 'flamethrower', 'icebeam'], extra: ['thunderbolt', 'shadowball'] },
+  { id: 78,  key: 'rapidash',  name: '날쌩마',     types: ['fire'],              base: [65, 100, 70, 80, 80, 105],   moves: ['flareblitz', 'wildcharge', 'highjumpkick', 'megahorn'], extra: ['doubleedge'] },
+  { id: 103, key: 'exeggutor', name: '나시',       types: ['grass', 'psychic'],  base: [95, 95, 85, 125, 75, 55],    moves: ['psychic', 'leafstorm', 'energyball', 'sludgebomb'], extra: ['woodhammer'] },
+  { id: 106, key: 'hitmonlee', name: '시라소몬',   types: ['fighting'],          base: [50, 120, 53, 35, 110, 87],   moves: ['highjumpkick', 'closecombat', 'stoneedge', 'doubleedge'], extra: ['earthquake'] },
+  { id: 107, key: 'hitmonchan',name: '홍수몬',     types: ['fighting'],          base: [50, 105, 79, 35, 110, 76],   moves: ['machpunch', 'drainpunch', 'thunderpunch', 'icepunch'], extra: ['firepunch'] },
+  { id: 237, key: 'hitmontop', name: '카포에라',   types: ['fighting'],          base: [50, 95, 95, 35, 110, 70],    moves: ['machpunch', 'closecombat', 'bulletpunch', 'earthquake'], extra: ['stoneedge'] },
+  { id: 141, key: 'kabutops',  name: '투구푸스',   types: ['rock', 'water'],     base: [60, 115, 105, 65, 70, 80],   moves: ['liquidation', 'stoneedge', 'xscissor', 'aquajet'], extra: ['lowkick'] },
+  { id: 62,  key: 'poliwrath', name: '강챙이',     types: ['water', 'fighting'], base: [90, 95, 95, 70, 90, 70],     moves: ['waterfall', 'closecombat', 'drainpunch', 'icepunch'], extra: ['earthquake'] },
+  { id: 73,  key: 'tentacruel',name: '독파리',     types: ['water', 'poison'],   base: [80, 70, 65, 80, 120, 100],   moves: ['sludgebomb', 'hydropump', 'icebeam', 'hex'], extra: ['dazzlinggleam'] },
+  { id: 51,  key: 'dugtrio',   name: '닥트리오',   types: ['ground'],            base: [35, 100, 50, 50, 70, 120],   moves: ['earthquake', 'stoneedge', 'suckerpunch', 'nightslash'], extra: ['rockslide'] },
+  { id: 28,  key: 'sandslash', name: '고지',       types: ['ground'],            base: [75, 100, 110, 45, 55, 65],   moves: ['earthquake', 'knockoff', 'stoneedge', 'poisonjab'], extra: ['xscissor'] },
+  { id: 45,  key: 'vileplume', name: '라플레시아', types: ['grass', 'poison'],   base: [75, 80, 85, 110, 90, 50],    moves: ['gigadrain', 'sludgebomb', 'moonblast', 'energyball'], extra: ['earthpower'] },
+  { id: 55,  key: 'golduck',   name: '골덕',       types: ['water'],             base: [80, 82, 78, 95, 80, 85],     moves: ['hydropump', 'icebeam', 'psychic', 'crosschop'], extra: ['focusblast'] },
+  { id: 97,  key: 'hypno',     name: '슬리퍼',     types: ['psychic'],           base: [85, 73, 70, 73, 115, 67],    moves: ['psychic', 'shadowball', 'focusblast', 'dazzlinggleam'], extra: ['thunderbolt'] },
+  { id: 57,  key: 'primeape',  name: '성원숭',     types: ['fighting'],          base: [65, 105, 60, 60, 70, 95],    moves: ['closecombat', 'earthquake', 'uturn', 'icepunch'], extra: ['stoneedge'] },
+  { id: 122, key: 'mrmime',    name: '마임맨',     types: ['psychic', 'fairy'],  base: [40, 45, 65, 100, 120, 90],   moves: ['psychic', 'dazzlinggleam', 'focusblast', 'shadowball'], extra: ['thunderbolt'] },
+  { id: 24,  key: 'arbok',     name: '아보크',     types: ['poison'],            base: [60, 95, 69, 65, 79, 80],     moves: ['gunkshot', 'earthquake', 'crunch', 'suckerpunch'], extra: ['icefang'] },
+  { id: 87,  key: 'dewgong',   name: '쥬레곤',     types: ['water', 'ice'],      base: [90, 70, 80, 70, 95, 70],     moves: ['icebeam', 'surf', 'liquidation', 'blizzard'], extra: ['drillrun'] },
+  { id: 101, key: 'electrode', name: '붐볼',       types: ['electric'],          base: [60, 50, 70, 80, 80, 150],    moves: ['thunderbolt', 'voltswitch', 'signalbeam', 'hypervoice'], extra: ['thunder'] },
+  { id: 139, key: 'omastar',   name: '암스타',     types: ['rock', 'water'],     base: [70, 60, 125, 115, 70, 55],   moves: ['hydropump', 'icebeam', 'earthpower', 'powergem'], extra: ['scald'] },
+  { id: 154, key: 'meganium',  name: '메가니움',   types: ['grass'],             base: [80, 82, 100, 83, 100, 80],   moves: ['energyball', 'gigadrain', 'earthquake', 'dragonpulse'], extra: ['dazzlinggleam'] },
+  { id: 171, key: 'lanturn',   name: '랜턴',       types: ['water', 'electric'], base: [125, 58, 58, 76, 76, 67],    moves: ['thunderbolt', 'scald', 'icebeam', 'voltswitch'], extra: ['dazzlinggleam'] },
+  { id: 178, key: 'xatu',      name: '네이티오',   types: ['psychic', 'flying'], base: [65, 75, 70, 95, 70, 95],     moves: ['psychic', 'airslash', 'heatwave', 'uturn'], extra: ['dazzlinggleam'] },
+  { id: 186, key: 'politoed',  name: '왕구리',     types: ['water'],             base: [90, 75, 75, 90, 100, 70],    moves: ['hydropump', 'icebeam', 'focusblast', 'hypervoice'], extra: ['scald'] },
+  { id: 195, key: 'quagsire',  name: '누오',       types: ['water', 'ground'],   base: [95, 85, 85, 65, 65, 35],     moves: ['earthquake', 'waterfall', 'icebeam', 'stoneedge'], extra: ['sludgebomb'] },
+  { id: 205, key: 'forretress',name: '쏘콘',       types: ['bug', 'steel'],      base: [75, 90, 140, 60, 60, 40],    moves: ['gyroball', 'ironhead', 'earthquake', 'bodypress'], extra: ['voltswitch'] },
+  { id: 210, key: 'granbull',  name: '그랑블루',   types: ['fairy'],             base: [90, 120, 75, 60, 60, 45],    moves: ['playrough', 'crunch', 'closecombat', 'earthquake'], extra: ['firefang'] },
+  { id: 232, key: 'donphan',   name: '코리갑',     types: ['ground'],            base: [90, 120, 120, 60, 60, 50],   moves: ['earthquake', 'knockoff', 'stoneedge', 'playrough'], extra: ['icefang'] },
+  { id: 272, key: 'ludicolo',  name: '로파파',     types: ['water', 'grass'],    base: [80, 70, 70, 90, 100, 70],    moves: ['hydropump', 'energyball', 'icebeam', 'gigadrain'], extra: ['focusblast'] },
+  { id: 275, key: 'shiftry',   name: '다탱구',     types: ['grass', 'dark'],     base: [90, 100, 60, 90, 60, 80],    moves: ['leafblade', 'knockoff', 'suckerpunch', 'darkpulse'], extra: ['heatwave'] },
+  { id: 277, key: 'swellow',   name: '스왈로',     types: ['normal', 'flying'],  base: [60, 85, 60, 75, 50, 125],    moves: ['bravebird', 'facade', 'uturn', 'doubleedge'], extra: ['heatwave'] },
+  { id: 279, key: 'pelipper',  name: '패리퍼',     types: ['water', 'flying'],   base: [60, 50, 100, 95, 70, 65],    moves: ['hydropump', 'hurricane', 'icebeam', 'uturn'], extra: ['scald'] },
+  { id: 291, key: 'ninjask',   name: '아이스크',   types: ['bug', 'flying'],     base: [61, 90, 45, 50, 50, 160],    moves: ['xscissor', 'aerialace', 'uturn', 'nightslash'], extra: ['leechlife'] },
+  { id: 295, key: 'exploud',   name: '폭음룡',     types: ['normal'],            base: [104, 91, 63, 91, 73, 68],    moves: ['boomburst', 'fireblast', 'icebeam', 'extrasensory'], extra: ['earthquake'] },
+  { id: 323, key: 'camerupt',  name: '폭타',       types: ['fire', 'ground'],    base: [70, 100, 70, 105, 75, 40],   moves: ['flamethrower', 'earthpower', 'earthquake', 'stoneedge'], extra: ['fireblast'] },
+  { id: 342, key: 'crawdaunt', name: '가재장군',   types: ['water', 'dark'],     base: [63, 120, 85, 90, 55, 55],    moves: ['crabhammer', 'knockoff', 'aquajet', 'closecombat'], extra: ['crunch'] },
+  { id: 354, key: 'banette',   name: '다크펫',     types: ['ghost'],             base: [64, 115, 65, 83, 63, 65],    moves: ['shadowclaw', 'suckerpunch', 'poltergeist', 'knockoff'], extra: ['thunderbolt'] },
+  { id: 365, key: 'walrein',   name: '씨카이저',   types: ['ice', 'water'],      base: [110, 80, 90, 95, 90, 65],    moves: ['icebeam', 'surf', 'earthquake', 'crunch'], extra: ['blizzard'] },
+  { id: 409, key: 'rampardos', name: '램펄드',     types: ['rock'],              base: [97, 165, 60, 65, 50, 58],    moves: ['headsmash', 'earthquake', 'stoneedge', 'zenheadbutt'], extra: ['firepunch'] },
+  { id: 419, key: 'floatzel',  name: '플로젤',     types: ['water'],             base: [85, 105, 55, 85, 50, 115],   moves: ['liquidation', 'icepunch', 'crunch', 'aquajet'], extra: ['focusblast'] },
+  { id: 423, key: 'gastrodon', name: '트리토돈',   types: ['water', 'ground'],   base: [111, 83, 68, 92, 82, 39],    moves: ['scald', 'earthpower', 'icebeam', 'earthquake'], extra: ['stoneedge'] },
+  { id: 424, key: 'ambipom',   name: '겟핸보숭',   types: ['normal'],            base: [75, 100, 66, 60, 66, 115],   moves: ['doubleedge', 'uturn', 'knockoff', 'acrobatics'], extra: ['lowkick'] },
+  { id: 429, key: 'mismagius', name: '무우마직',   types: ['ghost'],             base: [60, 60, 60, 105, 105, 105],  moves: ['shadowball', 'dazzlinggleam', 'thunderbolt', 'energyball'], extra: ['mysticalfire'] },
+  { id: 437, key: 'bronzong',  name: '동탁군',     types: ['steel', 'psychic'],  base: [67, 89, 116, 79, 116, 33],   moves: ['flashcannon', 'psychic', 'earthquake', 'bodypress'], extra: ['zenheadbutt'] },
+  { id: 442, key: 'spiritomb', name: '화강돌',     types: ['ghost', 'dark'],     base: [50, 92, 108, 92, 108, 35],   moves: ['shadowball', 'darkpulse', 'suckerpunch', 'psychic'], extra: ['hypnosis'] },
+  { id: 465, key: 'tangrowth', name: '덩쿠림보',   types: ['grass'],             base: [100, 100, 125, 110, 50, 50], moves: ['powerwhip', 'knockoff', 'earthquake', 'gigadrain'], extra: ['sludgebomb'] },
+  { id: 469, key: 'yanmega',   name: '메가자리',   types: ['bug', 'flying'],     base: [86, 76, 86, 116, 56, 95],    moves: ['bugbuzz', 'airslash', 'uturn', 'psychic'], extra: ['shadowball'] },
+  { id: 473, key: 'mamoswine', name: '맘모꾸리',   types: ['ice', 'ground'],     base: [110, 130, 80, 70, 60, 80],   moves: ['earthquake', 'iciclecrash', 'icefang', 'stoneedge'], extra: ['knockoff'] },
+  { id: 497, key: 'serperior', name: '샤로다',     types: ['grass'],             base: [75, 75, 95, 75, 95, 113],    moves: ['leafstorm', 'energyball', 'dragonpulse', 'knockoff'], extra: ['dazzlinggleam'] },
+  { id: 500, key: 'emboar',    name: '염무왕',     types: ['fire', 'fighting'],  base: [110, 123, 65, 100, 65, 65],  moves: ['flareblitz', 'closecombat', 'wildcharge', 'headsmash'], extra: ['earthquake'] },
+  { id: 503, key: 'samurott',  name: '대검귀',     types: ['water'],             base: [95, 100, 85, 108, 70, 70],   moves: ['liquidation', 'megahorn', 'aquajet', 'icebeam'], extra: ['earthquake'] },
+  { id: 526, key: 'gigalith',  name: '기가이어스', types: ['rock'],              base: [85, 135, 130, 60, 80, 25],   moves: ['stoneedge', 'earthquake', 'bodypress', 'heavyslam'], extra: ['rockslide'] },
+  { id: 547, key: 'whimsicott',name: '엘풍',       types: ['grass', 'fairy'],    base: [60, 67, 85, 77, 75, 116],    moves: ['energyball', 'moonblast', 'uturn', 'dazzlinggleam'], extra: ['hypnosis'] },
+  { id: 555, key: 'darmanitan',name: '불비달마',   types: ['fire'],              base: [105, 140, 55, 30, 55, 95],   moves: ['flareblitz', 'earthquake', 'stoneedge', 'uturn'], extra: ['firepunch'] },
+  { id: 560, key: 'scrafty',   name: '곤율거니',   types: ['dark', 'fighting'],  base: [65, 90, 115, 45, 115, 58],   moves: ['knockoff', 'drainpunch', 'crunch', 'highjumpkick'], extra: ['poisonjab'] },
+  { id: 579, key: 'reuniclus', name: '란쿨루스',   types: ['psychic'],           base: [110, 65, 75, 125, 85, 30],   moves: ['psychic', 'focusblast', 'shadowball', 'energyball'], extra: ['thunderbolt'] },
+  { id: 584, key: 'vanilluxe', name: '배바닐라',   types: ['ice'],               base: [71, 95, 85, 110, 95, 79],    moves: ['blizzard', 'icebeam', 'hypervoice', 'shadowball'], extra: ['freezedry'] },
+  { id: 591, key: 'amoonguss', name: '뽀록나',     types: ['grass', 'poison'],   base: [114, 85, 70, 85, 80, 30],    moves: ['gigadrain', 'sludgebomb', 'energyball', 'hex'], extra: ['bodypress'] },
+  { id: 593, key: 'jellicent', name: '탱탱겔',     types: ['water', 'ghost'],    base: [100, 60, 70, 85, 105, 60],   moves: ['scald', 'shadowball', 'icebeam', 'hex'], extra: ['energyball'] },
+  { id: 604, key: 'eelektross',name: '저리더프',   types: ['electric'],          base: [85, 115, 80, 105, 80, 50],   moves: ['wildcharge', 'thunderbolt', 'drainpunch', 'flamethrower'], extra: ['dragonclaw'] },
+  { id: 621, key: 'druddigon', name: '크리만',     types: ['dragon'],            base: [77, 120, 90, 60, 90, 48],    moves: ['outrage', 'dragonclaw', 'earthquake', 'crunch'], extra: ['firepunch'] },
+  { id: 675, key: 'pangoro',   name: '부란다',     types: ['fighting', 'dark'],  base: [95, 124, 78, 69, 71, 58],    moves: ['knockoff', 'drainpunch', 'crunch', 'closecombat'], extra: ['icepunch'] },
+  { id: 693, key: 'clawitzer', name: '블로스터',   types: ['water'],             base: [71, 73, 88, 120, 89, 59],    moves: ['hydropump', 'darkpulse', 'aurasphere', 'icebeam'], extra: ['dragonpulse'] },
+  { id: 697, key: 'tyrantrum', name: '견고라스',   types: ['rock', 'dragon'],    base: [82, 121, 119, 69, 59, 71],   moves: ['headsmash', 'outrage', 'crunch', 'earthquake'], extra: ['stoneedge'] },
+  { id: 713, key: 'avalugg',   name: '크레베이스', types: ['ice'],               base: [95, 117, 184, 44, 46, 28],   moves: ['bodypress', 'iciclecrash', 'earthquake', 'crunch'], extra: ['stoneedge'] },
+  { id: 834, key: 'drednaw',   name: '갈가부기',   types: ['water', 'rock'],     base: [90, 115, 90, 48, 68, 74],    moves: ['liquidation', 'stoneedge', 'crunch', 'earthquake'], extra: ['icefang'] },
+  { id: 862, key: 'obstagoon', name: '가로막구리', types: ['dark', 'normal'],    base: [93, 90, 101, 60, 81, 95],    moves: ['knockoff', 'facade', 'closecombat', 'suckerpunch'], extra: ['icepunch'] },
+  { id: 956, key: 'espathra',  name: '클레스퍼트라', types: ['psychic'],         base: [95, 60, 60, 101, 60, 105],   moves: ['psychic', 'dazzlinggleam', 'shadowball', 'uturn'], extra: ['energyball'] },
+  { id: 967, key: 'cyclizar',  name: '모토마',     types: ['dragon', 'normal'],  base: [70, 95, 65, 85, 65, 121],    moves: ['dragonclaw', 'doubleedge', 'uturn', 'knockoff'], extra: ['dracometeor'] },
+  { id: 975, key: 'cetitan',   name: '우락고래',   types: ['ice'],               base: [170, 113, 65, 45, 55, 73],   moves: ['iciclecrash', 'earthquake', 'liquidation', 'playrough'], extra: ['icebeam'] },
+  { id: 1018,key: 'archaludon',name: '브리두라스', types: ['steel', 'dragon'],   base: [90, 105, 130, 125, 65, 85],  moves: ['flashcannon', 'dragonpulse', 'bodypress', 'dracometeor'], extra: ['thunderbolt'] },
 
   // 전설·환상의 포켓몬
   { id: 892, key: 'urshifu',   name: '우라오스(일격)', types: ['fighting', 'dark'], base: [100, 130, 100, 63, 60, 97], moves: ['wickedblow', 'closecombat', 'suckerpunch', 'ironhead'], extra: ['poisonjab'], legend: true },
@@ -587,7 +728,7 @@ const POKEMON = [
   { id: 10023, key: 'kyuremwhite', name: '화이트큐레무', types: ['dragon', 'ice'], base: [125, 120, 90, 170, 100, 95], moves: ['fusionflare', 'dragonpulse', 'icebeam', 'dracometeor'], extra: ['earthpower', 'focusblast'], legend: true },
   { id: 791, key: 'solgaleo',  name: '솔가레오',   types: ['psychic', 'steel'],  base: [137, 137, 107, 113, 89, 97], moves: ['sunsteelstrike', 'flareblitz', 'earthquake', 'stoneedge'], extra: ['psychic', 'flashcannon'], legend: true },
   { id: 792, key: 'lunala',    name: '루나아라',   types: ['psychic', 'ghost'],  base: [137, 113, 89, 137, 107, 97], moves: ['moongeistbeam', 'moonblast', 'shadowball', 'psychic'], extra: ['icebeam', 'heatwave'], legend: true },
-  { id: 800, key: 'necrozma',  name: '네크로즈마', types: ['psychic'],           base: [97, 107, 101, 127, 89, 79],  moves: ['prismaticlaser', 'photongeyser', 'heatwave', 'earthquake'], extra: ['flashcannon', 'darkpulse'], legend: true },
+  { id: 800, key: 'necrozma',  name: '네크로즈마', types: ['psychic'],           base: [97, 107, 101, 127, 89, 79],  moves: ['prismaticlaser', 'photongeyser', 'heatwave', 'earthquake'], extra: ['flashcannon', 'darkpulse'], legend: true, hidden: true },
   { id: 10155, key: 'necrozmadusk', name: '네크로즈마(황혼의 갈기)', types: ['psychic', 'steel'], base: [97, 157, 127, 113, 109, 77], moves: ['sunsteelstrike', 'earthquake', 'outrage', 'stoneedge'], extra: ['photongeyser', 'flashcannon'], legend: true },
   { id: 10156, key: 'necrozmadawn', name: '네크로즈마(새벽의 날개)', types: ['psychic', 'ghost'], base: [97, 113, 109, 157, 127, 77], moves: ['moongeistbeam', 'moonblast', 'psychic', 'heatwave'], extra: ['photongeyser', 'shadowball'], legend: true },
   { id: 716, key: 'xerneas',   name: '제르네아스', types: ['fairy'],             base: [126, 131, 95, 131, 98, 99],  moves: ['moonblast', 'dazzlinggleam', 'thunderbolt', 'focusblast'], extra: ['playrough', 'closecombat'], legend: true },
@@ -605,13 +746,50 @@ const POKEMON = [
   { id: 1002, key: 'chienpao', name: '파오젠',     types: ['dark', 'ice'],       base: [80, 120, 80, 90, 65, 135],   moves: ['iciclecrash', 'crunch', 'iceshard', 'suckerpunch'], extra: ['icebeam'], legend: true },
   { id: 1003, key: 'tinglu',   name: '딩루',       types: ['dark', 'ground'],    base: [155, 110, 125, 55, 80, 45],  moves: ['earthquake', 'heavyslam', 'stoneedge', 'bodypress'], extra: ['crunch'], legend: true },
   { id: 1004, key: 'chiyu',    name: '위유이',     types: ['dark', 'fire'],      base: [55, 80, 80, 135, 120, 100],  moves: ['flamethrower', 'darkpulse', 'overheat', 'fireblast'], extra: ['psychic'], legend: true },
+  { id: 785, key: 'tapukoko',  name: '카푸꼬꼬꼭', types: ['electric', 'fairy'], base: [70, 115, 85, 95, 75, 130],   moves: ['naturesmadness', 'wildcharge', 'bravebird', 'uturn'], extra: ['thunderbolt', 'dazzlinggleam', 'playrough', 'thunder'], legend: true },
+  { id: 786, key: 'tapulele',  name: '카푸나비나', types: ['psychic', 'fairy'],  base: [70, 85, 75, 130, 115, 95],   moves: ['naturesmadness', 'moonblast', 'psychic', 'focusblast'], extra: ['psyshock', 'shadowball', 'dazzlinggleam'], legend: true },
+  { id: 787, key: 'tapubulu',  name: '카푸브루루', types: ['grass', 'fairy'],    base: [70, 130, 115, 85, 95, 75],   moves: ['naturesmadness', 'woodhammer', 'playrough', 'superpower'], extra: ['stoneedge', 'grassyglide', 'megahorn'], legend: true },
+  { id: 788, key: 'tapufini',  name: '카푸느지느', types: ['water', 'fairy'],    base: [70, 75, 115, 95, 130, 85],   moves: ['naturesmadness', 'moonblast', 'scald', 'icebeam'], extra: ['hydropump', 'dazzlinggleam', 'shadowball'], legend: true },
+  { id: 243, key: 'raikou',    name: '라이코',     types: ['electric'],          base: [90, 85, 75, 115, 100, 115],  moves: ['thunderbolt', 'thunder', 'shadowball', 'extrasensory'], extra: ['voltswitch', 'crunch'], legend: true },
+  { id: 244, key: 'entei',     name: '앤테이',     types: ['fire'],              base: [115, 115, 85, 90, 75, 100],  moves: ['sacredfire', 'flareblitz', 'extremespeed', 'stoneedge'], extra: ['crunch', 'ironhead'], legend: true },
+  { id: 245, key: 'suicune',   name: '스이쿤',     types: ['water'],             base: [100, 75, 115, 90, 115, 85],  moves: ['scald', 'icebeam', 'extrasensory', 'hydropump'], extra: ['shadowball'], legend: true },
+  { id: 251, key: 'celebi',    name: '세레비',     types: ['psychic', 'grass'],  base: [100, 100, 100, 100, 100, 100], moves: ['psychic', 'energyball', 'dazzlinggleam', 'shadowball'], extra: ['earthpower'], legend: true },
+  { id: 377, key: 'regirock',  name: '레지락',     types: ['rock'],              base: [80, 100, 200, 50, 100, 50],  moves: ['stoneedge', 'earthquake', 'bodypress', 'heavyslam'], extra: ['superpower'], legend: true },
+  { id: 378, key: 'regice',    name: '레지아이스', types: ['ice'],               base: [80, 50, 100, 100, 200, 50],  moves: ['icebeam', 'blizzard', 'thunderbolt', 'focusblast'], extra: ['flashcannon'], legend: true },
+  { id: 379, key: 'registeel', name: '레지스틸',   types: ['steel'],             base: [80, 75, 150, 75, 150, 50],   moves: ['flashcannon', 'ironhead', 'bodypress', 'earthquake'], extra: ['thunderbolt'], legend: true },
+  { id: 385, key: 'jirachi',   name: '지라치',     types: ['steel', 'psychic'],  base: [100, 100, 100, 100, 100, 100], moves: ['ironhead', 'psychic', 'thunderbolt', 'dazzlinggleam'], extra: ['uturn'], legend: true },
+  { id: 386, key: 'deoxys',    name: '테오키스',   types: ['psychic'],           base: [50, 150, 50, 150, 50, 150],  moves: ['psychic', 'extremespeed', 'shadowball', 'focusblast'], extra: ['icebeam', 'thunderbolt'], legend: true },
+  { id: 480, key: 'uxie',      name: '유크시',     types: ['psychic'],           base: [75, 75, 130, 75, 130, 95],   moves: ['psychic', 'thunderbolt', 'energyball', 'shadowball'], extra: ['uturn'], legend: true },
+  { id: 481, key: 'mesprit',   name: '엠라이트',   types: ['psychic'],           base: [80, 105, 105, 105, 105, 80], moves: ['psychic', 'dazzlinggleam', 'thunderbolt', 'icebeam'], extra: ['energyball'], legend: true },
+  { id: 482, key: 'azelf',     name: '아그논',     types: ['psychic'],           base: [75, 125, 70, 125, 70, 115],  moves: ['psychic', 'flamethrower', 'fireblast', 'uturn'], extra: ['extrasensory'], legend: true },
+  { id: 638, key: 'cobalion',  name: '코바르온',   types: ['steel', 'fighting'], base: [91, 90, 129, 90, 72, 108],   moves: ['sacredsword', 'ironhead', 'closecombat', 'voltswitch'], extra: ['stoneedge'], legend: true },
+  { id: 639, key: 'terrakion', name: '테라키온',   types: ['rock', 'fighting'],  base: [91, 129, 90, 72, 90, 108],   moves: ['closecombat', 'stoneedge', 'earthquake', 'sacredsword'], extra: ['rockslide'], legend: true },
+  { id: 640, key: 'virizion',  name: '비리디온',   types: ['grass', 'fighting'], base: [91, 90, 72, 90, 129, 108],   moves: ['leafblade', 'closecombat', 'sacredsword', 'stoneedge'], extra: ['energyball'], legend: true },
+  { id: 641, key: 'tornadus',  name: '토네로스',   types: ['flying'],            base: [79, 115, 70, 125, 80, 111],  moves: ['hurricane', 'airslash', 'heatwave', 'uturn'], extra: ['extrasensory', 'focusblast'], legend: true },
+  { id: 642, key: 'thundurus', name: '볼트로스',   types: ['electric', 'flying'], base: [79, 115, 70, 125, 80, 111], moves: ['thunderbolt', 'thunder', 'focusblast', 'uturn'], extra: ['heatwave'], legend: true },
+  { id: 648, key: 'meloetta',  name: '메로엣타',   types: ['normal', 'psychic'], base: [100, 77, 77, 128, 128, 90],  moves: ['hypervoice', 'psychic', 'focusblast', 'shadowball'], extra: ['dazzlinggleam'], legend: true },
+  { id: 649, key: 'genesect',  name: '게노세크트', types: ['bug', 'steel'],      base: [71, 120, 95, 120, 95, 99],   moves: ['flashcannon', 'bugbuzz', 'flamethrower', 'icebeam'], extra: ['thunderbolt', 'uturn'], legend: true },
+  { id: 718, key: 'zygarde',   name: '지가르데',   types: ['dragon', 'ground'],  base: [108, 100, 121, 81, 95, 95],  moves: ['earthquake', 'outrage', 'dragonclaw', 'stoneedge'], extra: ['extremespeed'], legend: true },
+  { id: 719, key: 'diancie',   name: '디안시',     types: ['rock', 'fairy'],     base: [50, 100, 150, 100, 150, 50], moves: ['moonblast', 'powergem', 'earthpower', 'bodypress'], extra: ['dazzlinggleam'], legend: true },
+  { id: 720, key: 'hoopa',     name: '후파',       types: ['psychic', 'ghost'],  base: [80, 110, 60, 150, 130, 70],  moves: ['psychic', 'shadowball', 'focusblast', 'thunderbolt'], extra: ['darkpulse'], legend: true },
+  { id: 721, key: 'volcanion', name: '볼케니온',   types: ['fire', 'water'],     base: [80, 110, 120, 130, 90, 70],  moves: ['flamethrower', 'hydropump', 'earthpower', 'flashcannon'], extra: ['overheat'], legend: true },
+  { id: 801, key: 'magearna',  name: '마기아나',   types: ['steel', 'fairy'],    base: [80, 95, 115, 130, 115, 65],  moves: ['flashcannon', 'moonblast', 'aurasphere', 'focusblast'], extra: ['thunderbolt'], legend: true },
+  { id: 802, key: 'marshadow', name: '마샤도',     types: ['fighting', 'ghost'], base: [90, 125, 80, 90, 90, 125],   moves: ['closecombat', 'shadowsneak', 'icepunch', 'suckerpunch'], extra: ['poltergeist'], legend: true },
+  { id: 807, key: 'zeraora',   name: '제라오라',   types: ['electric'],          base: [88, 112, 75, 102, 80, 143],  moves: ['wildcharge', 'closecombat', 'thunderpunch', 'drainpunch'], extra: ['playrough'], legend: true },
+  { id: 809, key: 'melmetal',  name: '멜메탈',     types: ['steel'],             base: [135, 143, 143, 80, 65, 34],  moves: ['heavyslam', 'earthquake', 'thunderpunch', 'icepunch'], extra: ['superpower'], legend: true },
+  { id: 896, key: 'glastrier', name: '블리자포스', types: ['ice'],               base: [100, 145, 130, 65, 110, 30], moves: ['iciclecrash', 'closecombat', 'highhorsepower', 'bodypress'], extra: ['zenheadbutt'], legend: true },
+  { id: 897, key: 'spectrier', name: '레이스포스', types: ['ghost'],             base: [100, 65, 60, 145, 80, 130],  moves: ['shadowball', 'psychic', 'drainingkiss', 'hex'], extra: ['darkpulse'], legend: true },
+  { id: 10193, key: 'calyrexice', name: '버드렉스(백마 탄 모습)', types: ['psychic', 'ice'], base: [100, 165, 150, 85, 130, 50], moves: ['iciclecrash', 'closecombat', 'highhorsepower', 'bodypress'], extra: ['zenheadbutt'], legend: true },
+  { id: 10194, key: 'calyrexshadow', name: '버드렉스(흑마 탄 모습)', types: ['psychic', 'ghost'], base: [100, 85, 80, 165, 100, 150], moves: ['psychic', 'shadowball', 'energyball', 'psyshock'], extra: ['dazzlinggleam'], legend: true },
+  { id: 1016, key: 'fezandipiti', name: '기로치',  types: ['poison', 'fairy'],   base: [88, 91, 82, 70, 125, 99],    moves: ['moonblast', 'playrough', 'heatwave', 'uturn'], extra: ['gunkshot'], legend: true },
+  { id: 1017, key: 'ogerpon',  name: '오거폰',     types: ['grass'],             base: [80, 120, 84, 60, 96, 110],   moves: ['woodhammer', 'playrough', 'knockoff', 'uturn'], extra: ['superpower'], legend: true },
 
   // 이스터에그. 도감에는 숨겨 두고, 메뉴에서 비밀 입력을 하면 풀린다.
-  { id: 90001, key: 'omegamon', name: '오메가몬', types: ['steel', 'ice'], base: [108, 130, 120, 130, 115, 97], moves: ['greysword', 'garurucannon', 'extremespeed', 'icebeam'], fixedPool: true, egg: true },
+  { id: 90001, key: 'omegamon', name: '오메가몬', types: ['fire', 'ice'], base: [108, 130, 120, 130, 115, 97], moves: ['greysword', 'garurucannon', 'extremespeed', 'icebeam'], fixedPool: true, egg: true },
 ];
 
 const POKEMON_ABILITY = {
-  rattata: 'moldbreaker', pikachu: 'static', charizard: 'blaze', blastoise: 'torrent', venusaur: 'overgrow', gengar: 'cursedbody',
+  rattata: 'moldbreaker', pikachu: 'static', ashpikachu: 'static', charizard: 'blaze', blastoise: 'torrent', venusaur: 'overgrow', gengar: 'cursedbody',
   mewtwo: 'pressure', lucario: 'innerfocus', garchomp: 'roughskin', gyarados: 'intimidate', dragonite: 'multiscale',
   snorlax: 'thickfat', honchkrow: 'superluck', greninja: 'protean', lapras: 'waterabsorb',
   alakazam: 'magicguard', machamp: 'noguard', tyranitar: 'sandstream', scizor: 'technician', blaziken: 'speedboost',
@@ -645,12 +823,36 @@ const POKEMON_ABILITY = {
   azumarill: 'hugepower', abomasnow: 'snowwarning', glalie: 'innerfocus', lopunny: 'limber', sableye: 'prankster',
   baxcalibur: 'thermalexchange', meowscarada: 'protean', skeledirge: 'blaze', quaquaval: 'torrent', annihilape: 'defiant',
   gholdengo: 'goodasgold', tinkaton: 'moldbreaker', ceruledge: 'flashfire', armarouge: 'flashfire',
+  sirfetchd: 'steadfast', dracovish: 'strongjaw',
   urshifu: 'unseenfist', urshifurapid: 'unseenfist',
   kyurem: 'pressure', kyuremblack: 'teravolt', kyuremwhite: 'turboblaze',
   solgaleo: 'fullmetalbody', lunala: 'shadowshield', necrozma: 'prismarmor', necrozmadusk: 'prismarmor', necrozmadawn: 'prismarmor',
   xerneas: 'fairyaura', yveltal: 'darkaura', heatran: 'flashfire', landorus: 'intimidate', darkrai: 'baddreams',
   cresselia: 'levitate', keldeo: 'justified', koraidon: 'orichalcumpulse', miraidon: 'hadronengine', eternatus: 'pressure',
   enamorus: 'contrary', wochien: 'tabletsofruin', chienpao: 'swordofruin', tinglu: 'vesselofruin', chiyu: 'beadsofruin',
+  tapukoko: 'electricsurge', tapulele: 'psychicsurge', tapubulu: 'grassysurge', tapufini: 'mistysurge',
+  clefable: 'magicguard', rapidash: 'flashfire', exeggutor: 'chlorophyll', hitmonlee: 'reckless', hitmonchan: 'ironfist',
+  hitmontop: 'technician', kabutops: 'swiftswim', poliwrath: 'waterabsorb', tentacruel: 'clearbody', dugtrio: 'sandforce',
+  sandslash: 'sandforce', vileplume: 'chlorophyll', golduck: 'swiftswim', hypno: 'insomnia', primeape: 'defiant',
+  mrmime: 'filter', arbok: 'intimidate', dewgong: 'thickfat', electrode: 'static', omastar: 'shellarmor',
+  meganium: 'overgrow', lanturn: 'voltabsorb', xatu: 'synchronize', politoed: 'drizzle', quagsire: 'waterabsorb',
+  forretress: 'sturdy', granbull: 'intimidate', donphan: 'sturdy', ludicolo: 'swiftswim', shiftry: 'chlorophyll',
+  swellow: 'guts', pelipper: 'drizzle', ninjask: 'speedboost', exploud: 'scrappy', camerupt: 'solidrock',
+  crawdaunt: 'adaptability', banette: 'cursedbody', walrein: 'thickfat', rampardos: 'moldbreaker', floatzel: 'swiftswim',
+  gastrodon: 'sandforce', ambipom: 'technician', mismagius: 'levitate', bronzong: 'levitate', spiritomb: 'pressure',
+  tangrowth: 'regenerator', yanmega: 'speedboost', mamoswine: 'thickfat', serperior: 'contrary', emboar: 'blaze',
+  samurott: 'torrent', gigalith: 'sturdy', whimsicott: 'prankster', darmanitan: 'sheerforce', scrafty: 'intimidate',
+  reuniclus: 'magicguard', vanilluxe: 'snowwarning', amoonguss: 'regenerator', jellicent: 'waterabsorb', eelektross: 'levitate',
+  druddigon: 'roughskin', pangoro: 'ironfist', clawitzer: 'megalauncher', tyrantrum: 'strongjaw', avalugg: 'sturdy',
+  drednaw: 'strongjaw', obstagoon: 'guts', espathra: 'speedboost', cyclizar: 'regenerator', cetitan: 'thickfat',
+  archaludon: 'sturdy',
+  raikou: 'pressure', entei: 'pressure', suicune: 'pressure', celebi: 'naturalcure',
+  regirock: 'clearbody', regice: 'clearbody', registeel: 'clearbody', jirachi: 'serenegrace', deoxys: 'pressure',
+  uxie: 'levitate', mesprit: 'levitate', azelf: 'levitate', cobalion: 'justified', terrakion: 'justified', virizion: 'justified',
+  tornadus: 'prankster', thundurus: 'prankster', meloetta: 'serenegrace', genesect: 'pressure', zygarde: 'pressure',
+  diancie: 'clearbody', hoopa: 'pressure', volcanion: 'waterabsorb', magearna: 'clearbody', marshadow: 'technician',
+  zeraora: 'voltabsorb', melmetal: 'ironfist', glastrier: 'innerfocus', spectrier: 'cursedbody',
+  calyrexice: 'innerfocus', calyrexshadow: 'pressure', fezandipiti: 'technician', ogerpon: 'defiant',
   omegamon: 'royalknight',
 };
 for (const p of POKEMON) p.ability = POKEMON_ABILITY[p.key];
@@ -659,13 +861,19 @@ const POKEMON_BY_KEY = Object.fromEntries(POKEMON.map(p => [p.key, p]));
 const TEAM_SIZE = 6;
 
 // 메가진화 (배틀당 1번, R키). id는 PokeAPI 폼 번호
+const GMAX_HINT = '배틀에서 G키로 거다이맥스. HP가 2배가 된다. 팀당 1회. 메가와는 따로다';
+function gmaxForm(id) {
+  return { id, suffix: 'gmax', label: '거다이맥스', hud: '거대', tag: '거대', gmax: true, hint: GMAX_HINT };
+}
 const MEGA_DATA = {
-  venusaur:   [{ id: 10033, types: ['grass', 'poison'],   base: [80, 100, 123, 122, 120, 80],  ability: 'thickfat' }],
+  venusaur:   [{ id: 10033, types: ['grass', 'poison'],   base: [80, 100, 123, 122, 120, 80],  ability: 'thickfat' }, gmaxForm(10195)],
   charizard:  [{ id: 10034, suffix: 'X', types: ['fire', 'dragon'], base: [78, 130, 111, 130, 85, 100], ability: 'toughclaws' },
-               { id: 10035, suffix: 'Y', types: ['fire', 'flying'], base: [78, 104, 78, 159, 115, 100], ability: 'drought' }],
-  blastoise:  [{ id: 10036, types: ['water'],             base: [79, 103, 120, 135, 115, 78],  ability: 'megalauncher' }],
+               { id: 10035, suffix: 'Y', types: ['fire', 'flying'], base: [78, 104, 78, 159, 115, 100], ability: 'drought' },
+               gmaxForm(10196)],
+  blastoise:  [{ id: 10036, types: ['water'],             base: [79, 103, 120, 135, 115, 78],  ability: 'megalauncher' }, gmaxForm(10197)],
+  pikachu:    [gmaxForm(10199)],
   alakazam:   [{ id: 10037, types: ['psychic'],           base: [55, 50, 65, 175, 105, 150],   ability: 'trace' }],
-  gengar:     [{ id: 10038, types: ['ghost', 'poison'],   base: [60, 65, 80, 170, 95, 130],    ability: 'shadowtag' }],
+  gengar:     [{ id: 10038, types: ['ghost', 'poison'],   base: [60, 65, 80, 170, 95, 130],    ability: 'shadowtag' }, gmaxForm(10202)],
   kangaskhan: [{ id: 10039, types: ['normal'],            base: [105, 125, 100, 60, 100, 100], ability: 'parentalbond' }],
   pinsir:     [{ id: 10040, types: ['bug', 'flying'],     base: [65, 155, 120, 65, 90, 105],   ability: 'aerilate' }],
   gyarados:   [{ id: 10041, types: ['water', 'dark'],     base: [95, 155, 109, 70, 130, 81],   ability: 'moldbreaker' }],
@@ -709,18 +917,38 @@ const MEGA_DATA = {
   chandelure: [{ id: 10291, types: ['ghost', 'fire'],     base: [60, 75, 110, 175, 110, 90],  ability: 'infiltrator' }],
   chesnaught: [{ id: 10292, types: ['grass', 'fighting'], base: [88, 137, 172, 74, 115, 44],  ability: 'bulletproof' }],
   delphox:    [{ id: 10293, types: ['fire', 'psychic'],    base: [75, 69, 72, 159, 125, 134],  ability: 'levitate' }],
-  greninja:   [{ id: 10294, types: ['water', 'dark'],     base: [72, 125, 77, 133, 81, 142],  ability: 'protean' }],
+  greninja:   [{ id: 10294, types: ['water', 'dark'],     base: [72, 125, 77, 133, 81, 142],  ability: 'protean' },
+               { id: 10117, suffix: 'ash', label: '지우개굴닌자', hud: '지우', tag: '지우', name: '지우개굴닌자', types: ['water', 'dark'], base: [72, 145, 67, 153, 71, 132], ability: 'battlebond' }],
+  omegamon:   [{ id: 90002, suffix: 'X', label: 'X진화', hud: 'X진화', tag: 'X', name: '오메가몬X', types: ['fire', 'ice'], base: [108, 155, 130, 155, 125, 112], ability: 'royalknight', gainMove: 'alldelete', battleOnly: true }],
+  necrozmadusk: [{ id: 10157, name: '울트라네크로즈마', label: '울트라진화', hud: '울트라', tag: '울트라', types: ['psychic', 'dragon'], base: [97, 167, 97, 167, 97, 129], ability: 'neuroforce', battleOnly: true, hint: '배틀에서 R키로 울트라네크로즈마가 된다. 팀당 1회' }],
+  necrozmadawn: [{ id: 10157, name: '울트라네크로즈마', label: '울트라진화', hud: '울트라', tag: '울트라', types: ['psychic', 'dragon'], base: [97, 167, 97, 167, 97, 129], ability: 'neuroforce', battleOnly: true, hint: '배틀에서 R키로 울트라네크로즈마가 된다. 팀당 1회' }],
+  arceus:    [{ id: 493, name: '아르세우스(레전드플레이트)', label: '레전드플레이트', hud: '레전드', tag: '레전드', types: ['normal'], base: [120, 120, 120, 120, 120, 120], ability: 'legendplate', battleOnly: true, hint: '배틀에서 R키로 레전드플레이트를 장착한다. 기술을 쓰면 그 타입으로 변하고, 심판의뭉치는 상대 약점에 맞춘다. 팀당 1회' }],
   hawlucha:   [{ id: 10300, types: ['fighting', 'flying'], base: [78, 137, 100, 74, 93, 118], ability: 'noguard' }],
   staraptor:  [{ id: 10308, types: ['fighting', 'flying'], base: [85, 140, 100, 60, 90, 110], ability: 'contrary' }],
   abomasnow:  [{ id: 10060, types: ['grass', 'ice'],       base: [90, 132, 105, 132, 105, 30], ability: 'snowwarning' }],
   lopunny:    [{ id: 10088, types: ['normal', 'fighting'], base: [65, 136, 94, 54, 96, 135], ability: 'scrappy' }],
+  machamp:    [gmaxForm(10201)],
+  kingler:    [gmaxForm(10203)],
+  lapras:     [gmaxForm(10204)],
+  snorlax:    [gmaxForm(10206)],
+  rillaboom:  [gmaxForm(10209)],
+  cinderace:  [gmaxForm(10210)],
+  inteleon:   [gmaxForm(10211)],
+  corviknight:[gmaxForm(10212)],
+  hatterene:  [gmaxForm(10221)],
+  grimmsnarl: [gmaxForm(10222)],
+  urshifu:    [gmaxForm(10226)],
+  urshifurapid:[gmaxForm(10227)],
+  eternatus:  [gmaxForm(10190)],
 };
 for (const [key, list] of Object.entries(MEGA_DATA)) {
   const sp = POKEMON_BY_KEY[key];
   sp.megas = list.map(f => ({
     ...sp, ...f, megas: null, mega: true,
     key: `${key}-mega${f.suffix ? '-' + f.suffix.toLowerCase() : ''}`,
-    name: `메가${sp.name}${f.suffix || ''}`,
+    name: f.name || (f.gmax ? `거다이맥스${sp.name}` : `메가${sp.name}${f.suffix || ''}`),
+    label: f.label || (f.suffix ? '메가 ' + f.suffix : '메가진화'),
+    hud: f.hud || '메가',
   }));
 }
 
@@ -760,7 +988,7 @@ function movePool(sp) {
     if (sp.crown) sp.crown.types.forEach(t => types.add(t));
     if (sp.primal) sp.primal.types.forEach(t => types.add(t));
     for (const [id, mv] of Object.entries(MOVES)) {
-      if (mv.sig || id === 'struggle') continue;
+      if (mv.sig || mv.z || id === 'struggle') continue;
       if (types.has(mv.type) && cats.includes(mv.cat)) set.add(id);
     }
     for (const c of cats) for (const id of UNIVERSAL_MOVES[c]) set.add(id);
@@ -796,7 +1024,14 @@ function rerollMove(sp, moves, i) {
   return out;
 }
 
-// 팀 항목: 'pikachu' 같은 문자열 또는 { key, moves, mega }
+function megaForms(sp) { return (sp && sp.megas || []).filter(f => !f.gmax); }
+function gmaxFormOf(sp) { return (sp && sp.megas || []).find(f => f.gmax) || null; }
+
+// CPU가 조종할 때 이 포켓몬이 쓸 수 있는 행동. 비어 있으면 가진 것을 모두 쓴다.
+const BURST_LIMITS = [['', '제한 없음'], ['mega', '메가만'], ['gmax', '거대만'], ['z', 'Z만']];
+function burstLimit(v) { return BURST_LIMITS.some(([id]) => id === v) ? v : ''; }
+
+// 팀 항목: 'pikachu' 같은 문자열 또는 { key, moves, mega, limit }
 function entryKey(e) { return typeof e === 'string' ? e : e.key; }
 function normalizeEntry(e) {
   const key = entryKey(e);
@@ -806,31 +1041,50 @@ function normalizeEntry(e) {
   let moves = e && Array.isArray(e.moves) ? e.moves.filter(id => pool.includes(id)) : [];
   moves = [...new Set(moves)].slice(0, 4);
   if (moves.length < 4) moves = moves.concat(sp.moves.filter(id => !moves.includes(id))).slice(0, 4);
-  const mega = sp.megas ? Math.min(sp.megas.length - 1, Math.max(0, (e && e.mega) | 0)) : 0;
-  return { key, moves, mega };
+  const forms = megaForms(sp);
+  const mega = forms.length ? Math.min(forms.length - 1, Math.max(0, (e && e.mega) | 0)) : 0;
+  return { key, moves, mega, limit: burstLimit(e && e.limit) };
 }
 
 /* ---------------- 스프라이트 ---------------- */
-// 로컬(assets/sprites) 우선, 없으면 PokeAPI 저장소에서 바로 불러온다.
+// 로컬에 있는 파일만 먼저 연다. 없는 번호까지 로컬을 치면 404를 기다린 뒤에야 원격 그림이 시작한다.
 const SPRITE_REMOTE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
+const LOCAL_GIF = {
+  front: new Set([6, 9, 25, 59, 135, 143, 212, 248, 254, 260, 282, 376, 384, 461, 468, 778]),
+  back: new Set([6, 25, 59, 135, 143, 248, 254, 260, 282, 376, 384, 461, 468, 778]),
+};
+const spriteReady = new Map();
+
 function spriteSources(id, back) {
   const dir = back ? 'back' : 'front';
-  if (id >= 90000) return [`assets/sprites/${dir}/${id}.png`];
-  return [
-    `assets/sprites/${dir}/${id}.gif`,
-    `${SPRITE_REMOTE}/other/showdown/${back ? 'back/' : ''}${id}.gif`,
-    `assets/sprites/static/${id}.png`,
-    `${SPRITE_REMOTE}/${back ? 'back/' : ''}${id}.png`,
-    `${SPRITE_REMOTE}/${id}.png`,
-  ];
+  if (id >= 90000) return [`assets/sprites/${dir}/${id}.png?v=base`];
+  const show = `${SPRITE_REMOTE}/other/showdown/${back ? 'back/' : ''}${id}.gif`;
+  const srcs = [];
+  if (LOCAL_GIF[dir].has(id)) srcs.push(`assets/sprites/${dir}/${id}.gif`);
+  srcs.push(show);
+  srcs.push(`${SPRITE_REMOTE}/${back ? 'back/' : ''}${id}.png`);
+  return srcs;
 }
 
-// 이미지 소스를 순서대로 시도한다.
+// 이미지 소스를 순서대로 시도한다. 한 번 성공한 주소는 다음에 바로 쓴다.
 function setSprite(img, id, back) {
-  if (id >= 90000) img.classList.add('smooth');
+  if (id >= 90000) img.classList.add('smooth', 'model');
+  else img.classList.remove('smooth', 'model');
+  img.decoding = 'async';
+  const key = (back ? 'b' : 'f') + id;
+  img.dataset.spriteKey = key;
+  const known = spriteReady.get(key);
+  const prevLoad = img.onload && !img.onload._sprite ? img.onload : null;
+  const onload = function () {
+    if (this.dataset.spriteKey === key) spriteReady.set(key, this.currentSrc || this.src);
+    if (prevLoad) prevLoad.call(this);
+  };
+  onload._sprite = true;
+  img.onload = onload;
+  if (known) { img.src = known; return; }
   const srcs = spriteSources(id, back);
   let i = 0;
-  img.onerror = () => { if (++i < srcs.length) img.src = srcs[i]; };
+  img.onerror = () => { if (img.dataset.spriteKey === key && ++i < srcs.length) img.src = srcs[i]; };
   img.src = srcs[0];
 }
 

@@ -25,7 +25,7 @@ function loadTeam() {
   try {
     const t = JSON.parse(localStorage.getItem('pa_team'));
     if (Array.isArray(t) && t.length) {
-      const parsed = t.map(normalizeEntry).filter(Boolean).slice(0, TEAM_SIZE);
+      const parsed = t.map(normalizeEntry).filter(e => e && !POKEMON_BY_KEY[e.key].hidden).slice(0, TEAM_SIZE);
       if (parsed.length) team = parsed;
     }
   } catch (e) { /* 기본 팀 사용 */ }
@@ -36,7 +36,7 @@ function loadCpuTeam() {
   try {
     const t = JSON.parse(localStorage.getItem('pa_cpu_team'));
     if (Array.isArray(t) && t.length) {
-      const parsed = t.map(normalizeEntry).filter(Boolean).slice(0, TEAM_SIZE);
+      const parsed = t.map(normalizeEntry).filter(e => e && !POKEMON_BY_KEY[e.key].hidden).slice(0, TEAM_SIZE);
       if (parsed.length >= 1) return parsed;
     }
   } catch (e) { /* 무작위 상대 */ }
@@ -55,7 +55,7 @@ function teamNeedsFull() { return UI.returnTo === 'ffa' || UI.returnTo === 'chal
 
 function randomTeam(exclude = []) {
   const ex = exclude.map(entryKey);
-  const pool = POKEMON.filter(p => !p.egg && !ex.includes(p.key)).map(p => p.key);
+  const pool = POKEMON.filter(p => !p.egg && !p.hidden && !ex.includes(p.key)).map(p => p.key);
   const out = [];
   while (out.length < TEAM_SIZE) {
     const k = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
@@ -68,24 +68,35 @@ function typeBadge(t) {
   return `<span class="tbadge" style="background:${TYPES[t].color}">${TYPES[t].ko}</span>`;
 }
 function shownForm(sp, entry) {
-  if (entry && typeof entry !== 'string' && sp.megas && sp.megas[entry.mega | 0]) return sp.megas[entry.mega | 0];
+  const forms = megaForms(sp);
+  if (entry && typeof entry !== 'string' && forms.length) return forms[Math.min(forms.length - 1, entry.mega | 0)];
   return sp.primal || sp.crown || sp;
+}
+// 배틀에 나가기 전의 모습. X진화·울트라·레전드플레이트는 R키를 누른 뒤에만 바뀐다.
+function sentForm(sp, entry) {
+  const shown = shownForm(sp, entry);
+  if (shown.battleOnly) return sp;
+  return shown;
 }
 function eggNameQuery(q) {
   const s = q.toLowerCase().replace(/\s+/g, '');
   return s.includes('omega') || q.includes('오메가');
 }
 function matchesDex(sp) {
+  if (sp.hidden) return false;
   const view = shownForm(sp);
   const q = UI.search.trim();
   if (sp.egg) return eggNameQuery(q);
   if (UI.typeFilter && !view.types.includes(UI.typeFilter)) return false;
   if (!q) return true;
-  return sp.name.includes(q) || view.name.includes(q) || sp.key.includes(q.toLowerCase());
+  const ql = q.toLowerCase();
+  if (sp.name.includes(q) || view.name.includes(q) || sp.key.includes(ql)) return true;
+  return (sp.megas || []).some(f => f.name.includes(q) || (f.label && f.label.includes(q)));
 }
-function spriteImg(id, cls = '') {
+function spriteImg(id, cls = '', lazy = false) {
   const img = document.createElement('img');
   if (cls) img.className = cls;
+  if (lazy) img.loading = 'lazy';
   img.alt = '';
   img.draggable = false;
   setSprite(img, id, false);
@@ -102,6 +113,8 @@ function show(name) {
   if (name === 'ffa') buildFfa();
   if (name === 'boss') buildBoss();
   if (name === 'challenge') buildChallenge();
+  if (name === 'help') buildHelp();
+  if (name === 'keys') buildKeys();
 }
 
 function backToMenu() {
@@ -157,8 +170,8 @@ function buildTeam() {
     : (UI.returnTo === 'boss'
       ? '보스전은 1~6마리면 됩니다. 전설 한 마리가 체력을 크게 늘린 채 나옵니다.'
       : (UI.editTarget === 'cpu'
-      ? '빠른 배틀 상대는 1~6마리면 됩니다. 기술과 메가진화 폼도 여기서 정합니다.'
-      : '빠른 배틀은 1~6마리면 됩니다. 대난투와 챌린지는 6마리가 필요합니다.'));
+      ? '빠른 배틀 상대는 1~6마리면 됩니다. 기술, 메가 폼, CPU 제한도 여기서 정합니다.'
+      : '빠른 배틀은 1~6마리면 됩니다. 대난투와 챌린지는 6마리가 필요합니다. CPU 제한은 CPU가 조종할 때만 적용됩니다.'));
   renderSlots();
   renderGrid();
   const keep = detailKey && POKEMON_BY_KEY[detailKey] && matchesDex(POKEMON_BY_KEY[detailKey]);
@@ -175,9 +188,11 @@ function renderSlots() {
     el.className = 'slot' + (e ? ' filled' : '');
     if (e) {
       const sp = POKEMON_BY_KEY[e.key];
-      const view = shownForm(sp, e);
+      const view = sentForm(sp, e);
+      const form = megaForms(sp)[e.mega | 0];
       el.innerHTML = `<span class="num">${i + 1}</span><span class="x">✕</span>` +
-        (sp.megas ? '<span class="mega-tag">Mega</span>' : '') +
+        (form && !form.battleOnly ? `<span class="mega-tag">${form.tag || 'Mega'}</span>` : '') +
+        (e.limit ? `<span class="limit-tag">${BURST_LIMITS.find(([id]) => id === e.limit)[1]}</span>` : '') +
         (sp.primal ? '<span class="primal-tag">원시</span>' : '');
       el.appendChild(spriteImg(view.id));
       const nm = document.createElement('div');
@@ -204,13 +219,15 @@ function renderGrid() {
     el.className = 'dex' + (idx >= 0 ? ' picked' : '');
     const pic = document.createElement('div');
     pic.className = 'pic';
-    pic.appendChild(spriteImg(view.id));
+    pic.appendChild(spriteImg(view.id, '', true));
     el.appendChild(pic);
     el.insertAdjacentHTML('beforeend', `<div class="nm">${view.name}</div><div>${view.types.map(typeBadge).join('')}</div>` +
       (idx >= 0 ? `<div class="order">${idx + 1}</div>` : '') +
       (sp.legend ? '<div class="legend">전설</div>' : '') +
       (sp.egg ? '<div class="egg">비밀</div>' : '') +
-      (sp.megas ? '<div class="mega">Mega</div>' : '') +
+      (sp.megas && megaForms(sp).length ? '<div class="mega">Mega</div>' : '') +
+      (gmaxFormOf(sp) ? '<div class="mega">거대</div>' : '') +
+      (Z_MOVES[sp.key] ? '<div class="mega">Z</div>' : '') +
       (sp.primal ? '<div class="primal">원시</div>' : '') +
       (sp.fixedLevel ? `<div class="lv100">Lv.${sp.fixedLevel}</div>` : ''));
     if (sp.legend) el.classList.add('is-legend');
@@ -236,49 +253,72 @@ function renderDetail(key) {
   if (!sp) return;
   const ti = teamIndex(key);
   const entry = ti >= 0 ? roster()[ti] : normalizeEntry(key);
-  const form = ti >= 0 && sp.megas ? sp.megas[entry.mega] : null;
-  const view = form || sp.primal || sp.crown || sp;
+  const forms = megaForms(sp);
+  const form = ti >= 0 && forms.length ? forms[Math.min(forms.length - 1, entry.mega | 0)] : null;
+  const view = sentForm(sp, ti >= 0 ? entry : null);
   const lv = sp.fixedLevel || 50;
   const st = calcStats(view, lv);
   const labels = ['HP', '공격', '방어', '특공', '특방', '스피드'];
   const vals = [st.hp, st.atk, st.def, st.spa, st.spd, st.spe];
+  if (view.gmax) vals[0] *= 2;
   const ab = ABILITIES[view.ability];
-  const moveIds = entry.moves;
+  const gainedAt = form && form.gainMove ? entry.moves.findIndex(id => MOVES[id] && !MOVES[id].sig) : -1;
+  const gainSlot = gainedAt >= 0 ? gainedAt : (form && form.gainMove ? entry.moves.length - 1 : -1);
+  const moveIds = entry.moves.map((id, i) => i === gainSlot ? form.gainMove : id);
   const box = $('#dexDetail');
-  const megaBtns = (sp.megas || []).map((f, i) =>
-    `<button class="small mega-btn${entry.mega === i ? ' on' : ''}" data-mega="${i}">${f.suffix ? '메가 ' + f.suffix : '메가진화'}</button>`
+  const megaBtns = forms.map((f, i) =>
+    `<button class="small mega-btn${entry.mega === i ? ' on' : ''}" data-mega="${i}">${f.label}</button>`
   ).join('');
+  const notes = forms.map(f => f.label);
+  if (gmaxFormOf(sp)) notes.push('거다이맥스');
+  if (Z_MOVES[sp.key]) notes.push('Z기술');
+  const evoNote = notes.length ? ` · ${notes.join('·')} 가능` : '';
+  const replaced = gainSlot >= 0 ? MOVES[entry.moves[gainSlot]] : null;
+  const evoHint = [
+    form && form.gainMove && replaced
+      ? `R키로 ${form.label}. ${replaced.name} 칸이 ${MOVES[form.gainMove].name}로 바뀝니다. 팀당 메가 1회`
+      : (form && form.hint) || (forms.length ? 'R키로 메가. 팀당 1회' : ''),
+    gmaxFormOf(sp) ? 'G키로 거다이맥스. HP 2배. 팀당 1회. 같은 포켓몬은 메가와 거다이맥스 중 하나만' : '',
+    Z_MOVES[sp.key] ? `Z키로 ${MOVES[Z_MOVES[sp.key]].name}. 팀당 1회` : '',
+  ].filter(Boolean).join(' · ');
   box.innerHTML = `
     <div class="dd-head">
       <div class="pic"></div>
       <div>
-        <div class="dd-no">No.${String(sp.id).padStart(4, '0')} · Lv.${lv}${sp.megas ? ' · 메가진화 가능' : ''}${sp.primal ? ' · 원시회귀' : ''}</div>
-        <div class="dd-name">${view.name}${sp.legend ? ' <span class="legend-tag">전설</span>' : ''}${sp.megas ? ' <span class="mega-tag">Mega</span>' : ''}${sp.primal ? ' <span class="primal-tag">원시</span>' : ''}</div>
+        <div class="dd-no">No.${String(sp.id).padStart(4, '0')} · Lv.${lv}${evoNote}${sp.primal ? ' · 원시회귀' : ''}</div>
+        <div class="dd-name">${view.name}${sp.legend ? ' <span class="legend-tag">전설</span>' : ''}${form && !form.battleOnly ? ` <span class="mega-tag">${form.tag || 'Mega'}</span>` : (!form && forms.length ? ' <span class="mega-tag">Mega</span>' : '')}${gmaxFormOf(sp) ? ' <span class="mega-tag">거대</span>' : ''}${Z_MOVES[sp.key] ? ' <span class="mega-tag">Z</span>' : ''}${sp.primal ? ' <span class="primal-tag">원시</span>' : ''}</div>
         <div>${view.types.map(typeBadge).join('')}</div>
       </div>
     </div>
     <div class="dd-ability"><b>특성 · ${ab.name}</b>${ab.desc}</div>
-    ${megaBtns ? `<div class="mega-row">${megaBtns}<span class="hint" style="margin:0">배틀에서 R키. 팀당 1회</span></div>` : ''}
+    ${(megaBtns || evoHint) ? `<div class="mega-row">${megaBtns}<span class="hint" style="margin:0">${evoHint}</span></div>` : ''}
+    ${ti >= 0 ? `<div class="mega-row">${BURST_LIMITS.map(([id, label]) => `<button class="small limit-btn${(entry.limit || '') === id ? ' on' : ''}" data-limit="${id}">${label}</button>`).join('')}<span class="hint" style="margin:0">CPU가 조종할 때만. 고른 행동만 메가·거다이맥스·Z 중에서 씁니다.</span></div>` : ''}
     <div class="stats">${labels.map((l, i) => {
-      const pct = Math.min(100, view.base[i] / 180 * 100);
-      const col = view.base[i] >= 110 ? '#4ade80' : view.base[i] >= 80 ? '#facc15' : '#fb923c';
+      const baseN = i === 0 && view.gmax ? view.base[i] * 2 : view.base[i];
+      const pct = Math.min(100, baseN / 180 * 100);
+      const col = baseN >= 110 ? '#4ade80' : baseN >= 80 ? '#facc15' : '#fb923c';
       return `<span>${l}</span><b>${vals[i]}</b><div class="bar"><i style="width:${Math.max(pct, 1)}%;background:${col}"></i></div>`;
     }).join('')}</div>
     <div class="dd-moves-head"><span>기술 4개</span>${ti >= 0 ? '<button class="small" id="btnAllMoves">기술 랜덤</button>' : ''}</div>
     <div class="dd-moves">${moveIds.map((id, i) => {
       const mv = MOVES[id];
-      return `<div class="dd-move" style="--tc:${TYPES[mv.type].color}" data-slot="${i}"><b>${mv.name}${ti >= 0 ? ' <span class="reroll">↻</span>' : ''}</b>` +
-        `<span>${TYPES[mv.type].ko} · ${KIND_KO[mv.kind]} · 위력 ${mv.power} · PP ${mv.pp}</span></div>`;
+      const locked = i === gainSlot;
+      return `<div class="dd-move" style="--tc:${TYPES[mv.type].color}" data-slot="${i}"><b>${mv.name}${ti >= 0 && !locked ? ' <span class="reroll">↻</span>' : ''}</b>` +
+        `<span>${TYPES[mv.type].ko} · ${KIND_KO[mv.kind]} · 위력 ${mv.power}${mv.rollHits ? ' · 2~5발' : ''} · PP ${mv.pp}</span></div>`;
     }).join('')}</div>`;
   box.querySelector('.pic').appendChild(spriteImg(view.id));
   if (ti >= 0) {
     box.querySelectorAll('.mega-btn').forEach(b => {
       b.onclick = () => { roster()[ti].mega = +b.dataset.mega; Sound.play('select'); renderSlots(); renderDetail(key); };
     });
+    box.querySelectorAll('.limit-btn').forEach(b => {
+      b.onclick = () => { roster()[ti].limit = b.dataset.limit; Sound.play('select'); renderSlots(); renderDetail(key); };
+    });
     const all = box.querySelector('#btnAllMoves');
     if (all) all.onclick = () => { roster()[ti].moves = randomMoves(sp); Sound.play('select'); renderDetail(key); };
     box.querySelectorAll('.dd-move').forEach(el => {
       el.onclick = () => {
+        if (+el.dataset.slot === gainSlot) return;
         roster()[ti].moves = rerollMove(sp, roster()[ti].moves, +el.dataset.slot);
         Sound.play('select');
         renderDetail(key);
@@ -315,14 +355,15 @@ function teamPreview(box, keys) {
   box.innerHTML = '';
   for (const k of keys) {
     const sp = POKEMON_BY_KEY[entryKey(k)];
-    const view = shownForm(sp, k);
+    const view = sentForm(sp, k);
     const el = document.createElement('div');
     el.className = 'tp';
     const pic = document.createElement('div');
     pic.className = 'pic';
     pic.appendChild(spriteImg(view.id));
     el.appendChild(pic);
-    el.insertAdjacentHTML('beforeend', `<div class="nm">${view.name}</div><div>${view.types.map(typeBadge).join('')}</div>`);
+    const limit = k && k.limit ? BURST_LIMITS.find(([id]) => id === k.limit) : null;
+    el.insertAdjacentHTML('beforeend', `<div class="nm">${view.name}</div><div>${view.types.map(typeBadge).join('')}</div>${limit ? `<div class="nm">${limit[1]}</div>` : ''}`);
     box.appendChild(el);
   }
 }
@@ -404,7 +445,7 @@ $('#btnFfaWatch').onclick = () => {
   startBattle({ mode: 'ffa', ffa: true, watch: true, arena: UI.arena, diff: UI.diff, playerTeam, cpuTeam: [], cpuName: '대난투' });
 };
 
-function legendChoices() { return POKEMON.filter(p => p.legend && !p.egg); }
+function legendChoices() { return POKEMON.filter(p => p.legend && !p.egg && !p.hidden); }
 function rollBoss(except) {
   const pool = legendChoices().filter(p => p.key !== except);
   const sp = pool[Math.floor(Math.random() * pool.length)];
@@ -502,7 +543,14 @@ function setPaused(p) {
   game.paused = p;
   $('#overlay-pause').classList.toggle('hidden', !p);
 }
-$('#abMega').onclick = () => { if (game && !game.paused) { const p = game.playerSide(); if (p) p.megaEvolve(); } };
+function playerNow() {
+  return game && !game.paused && !game.ended ? game.playerSide() : null;
+}
+$('#abDodge').onclick = () => { const p = playerNow(); if (p) p.dodge([p.input.x, p.input.y]); };
+$('#abSwitch').onclick = () => { const p = playerNow(); if (p) p.requestSwitch(); };
+$('#abMega').onclick = () => { const p = playerNow(); if (p) p.megaEvolve(); };
+$('#abGmax').onclick = () => { const p = playerNow(); if (p) p.gmaxEvolve(); };
+$('#abZ').onclick = () => { const p = playerNow(); if (p) p.useZ(); };
 $('#btnPause').onclick = () => setPaused(true);
 $('#btnResume').onclick = () => setPaused(false);
 $('#btnRestart').onclick = () => startBattle(UI.last);
@@ -625,7 +673,7 @@ function cardHTML(side, label) {
   const m = side.mon;
   const st = m.status ? `<span class="st-badge" style="background:${STATUS[m.status].color}">${STATUS[m.status].ko}</span>` : '';
   const balls = side.team.map(x => `<span class="ball${x.fainted ? ' out' : ''}"></span>`).join('');
-  const mega = m.megaed ? ' <span class="mega-tag">Mega</span>' : m.sp.primaled ? ' <span class="primal-tag">원시</span>' : '';
+  const mega = m.megaed ? ` <span class="mega-tag">${m.sp.tag || 'Mega'}</span>` : m.sp.primaled ? ' <span class="primal-tag">원시</span>' : '';
   const boss = m.boss ? ' <span class="boss-tag">BOSS</span>' : '';
   return `<div class="card-top"><span>${label}</span><span class="abil-name">${ABILITIES[m.ability].name} · Lv. ${m.level}</span></div>
     <div class="card-name"><span class="nm">${m.sp.name}</span>${boss}${mega}${m.sp.types.map(typeBadge).join('')}${st}</div>
@@ -659,15 +707,24 @@ function bindHUD() {
   HUD.moveBar = $('#moveBar');
   HUD.teamBar = $('#teamBar');
   HUD.dodge = document.querySelector('#abDodge .cdov');
+  HUD.dodgeKey = document.querySelector('#abDodge b');
   HUD.sw = document.querySelector('#abSwitch .cdov');
+  HUD.swKey = document.querySelector('#abSwitch b');
   HUD.mega = $('#abMega');
   HUD.megaLabel = HUD.mega.querySelector('span');
+  HUD.megaKey = HUD.mega.querySelector('b');
+  HUD.gmax = $('#abGmax');
+  HUD.gmaxLabel = HUD.gmax.querySelector('span');
+  HUD.gmaxKey = HUD.gmax.querySelector('b');
+  HUD.z = $('#abZ');
+  HUD.zLabel = HUD.z.querySelector('span');
+  HUD.zKey = HUD.z.querySelector('b');
   HUD.ffa = $('#ffaBoard');
 }
 
 function updateCard(el, side, label, sigKey) {
   const m = side.mon;
-  const sig = `${side.active}|${m.status}|${m.ability}|${m.sp.key}|${m.megaed}|${side.team.map(x => x.fainted ? 1 : 0).join('')}`;
+  const sig = `${side.active}|${m.status}|${m.ability}|${m.sp.key}|${m.sp.types.join(',')}|${m.sp.id}|${m.megaed}|${side.team.map(x => x.fainted ? 1 : 0).join('')}`;
   if (UI.hudSig[sigKey] !== sig) {
     UI.hudSig[sigKey] = sig;
     el.innerHTML = cardHTML(side, label);
@@ -723,9 +780,15 @@ function updateHUD() {
   setText(HUD.timer, fmtTime(Math.ceil(left)));
   HUD.timer.classList.toggle('urgent', left < 30);
   const w = game.weather, wNow = game.weatherNow();
-  const wName = w ? (w.primal ? WEATHER[w.type].primalKo : WEATHER[w.type].ko) : '';
-  setText(HUD.weather, w ? `${wName}${w.primal ? '' : ' ' + Math.ceil(w.t) + '초'}${wNow ? '' : game.hasDeltaStream() ? ' (델타스트림)' : ' (에어록)'}` : '');
-  setCss(HUD.weather, 'color', w ? WEATHER[w.type].color : '');
+  const parts = [];
+  if (w) {
+    const wName = w.primal ? WEATHER[w.type].primalKo : WEATHER[w.type].ko;
+    parts.push(`${wName}${w.primal ? '' : ' ' + Math.ceil(w.t) + '초'}${wNow ? '' : game.hasDeltaStream() ? ' (델타스트림)' : ' (에어록)'}`);
+  }
+  const tr = game.terrainNow();
+  if (tr) parts.push(`${TERRAIN[tr].ko} ${Math.ceil(game.terrain.t)}초`);
+  setText(HUD.weather, parts.join(' · '));
+  setCss(HUD.weather, 'color', w ? WEATHER[w.type].color : (tr ? TERRAIN[tr].color : ''));
   if (game.ffa) updateFfaBoard();
   else {
     updateCard(HUD.cardP, p, UI.last.watch ? 'CPU 1' : 'PLAYER', 'p');
@@ -743,9 +806,9 @@ function updateHUD() {
     }
   }
 
-  const keys = ['J', 'K', 'L', 'I'];
+  const keys = [1, 2, 3, 4].map(i => Controls.label(Controls.codes('move' + i)[0]));
   const mb = HUD.moveBar;
-  const msig = `${p.active}|${p.mon.sp.key}|${p.mon.moves.map(sl => sl.id).join(',')}`;
+  const msig = `${p.active}|${p.mon.sp.key}|${p.mon.moves.map(sl => sl.id).join(',')}|${keys.join(',')}`;
   if (UI.hudSig.moves !== msig) {
     UI.hudSig.moves = msig;
     mb.innerHTML = '';
@@ -767,11 +830,14 @@ function updateHUD() {
     const sl = p.mon.moves[i];
     const struggle = sl.pp <= 0;
     const mv = MOVES[struggle ? 'struggle' : sl.id];
-    const tc = TYPES[mv.type].color;
+    const judgmentPlate = !struggle && p.mon.ability === 'legendplate' && mv.id === 'judgment';
+    const showType = judgmentPlate ? 'normal' : mv.type;
+    const tc = judgmentPlate ? '#ffe14d' : TYPES[showType].color;
     if (el._tc !== tc) { el._tc = tc; el.style.setProperty('--tc', tc); }
     el.classList.toggle('struggle', struggle);
     setText(el._name, mv.name);
-    setText(el._type, `${TYPES[mv.type].ko} · ${KIND_KO[mv.kind]} · ${mv.power}`);
+    const typeWord = judgmentPlate ? '약점맞춤' : TYPES[showType].ko;
+    setText(el._type, `${typeWord} · ${KIND_KO[mv.kind]} · ${mv.power}${mv.rollHits ? ' · 2~5발' : ''}`);
     const ppText = struggle ? 'PP 없음' : `PP ${sl.pp}/${sl.maxPp}`;
     const ppClass = 'pp' + (struggle ? ' zero' : sl.pp <= sl.maxPp * 0.25 ? ' low' : '');
     setText(el._pp, ppText);
@@ -797,32 +863,295 @@ function updateHUD() {
 
   setCss(HUD.dodge, 'height', Math.max(0, p.dodgeCd / 0.9) * 100 + '%');
   setCss(HUD.sw, 'height', Math.max(0, p.switchCd / 3.5) * 100 + '%');
+  setText(HUD.dodgeKey, Controls.primaryText('dodge'));
+  setText(HUD.swKey, Controls.primaryText(['switchNext', 'switchPrev']));
+  setText(HUD.megaKey, Controls.primaryText('mega'));
+  setText(HUD.gmaxKey, Controls.primaryText('gmax'));
+  setText(HUD.zKey, Controls.primaryText('zmove'));
   const can = p.canMega();
   HUD.mega.classList.toggle('off', !can);
   HUD.mega.classList.toggle('ready', can);
-  setText(HUD.megaLabel, p.mon.megaed ? '메가' : can ? '메가' : game.megaOK[p.idx] ? '메가' : '사용함');
+  const picked = megaForms(p.mon.baseSp)[p.mon.megaIdx || 0];
+  const evoWord = (picked && picked.hud) || '메가';
+  const megaedHere = p.mon.megaed && !p.mon.gmax;
+  setText(HUD.megaLabel, !megaedHere && !can && !game.megaOK[p.idx] ? '사용함' : evoWord);
+  const canG = p.canGmax();
+  HUD.gmax.classList.toggle('off', !canG);
+  HUD.gmax.classList.toggle('ready', canG);
+  setText(HUD.gmaxLabel, !p.mon.gmax && !canG && !game.gmaxOK[p.idx] ? '사용함' : '거대');
+  const canZ = p.canZ();
+  HUD.z.classList.toggle('off', !canZ);
+  HUD.z.classList.toggle('ready', canZ);
+  setText(HUD.zLabel, p.mon.zUsed || (!canZ && !game.zOK[p.idx]) ? '사용함' : (Z_MOVES[p.mon.baseSp.key] ? 'Z기술' : '없음'));
 }
+
+/* ---------------- 조작 설정 ---------------- */
+let keyListen = null;
+let keyMsg = '';
+
+function openKeys(returnTo) {
+  UI.keysReturn = returnTo;
+  keyListen = null;
+  keyMsg = '';
+  if (returnTo === 'pause') $('#overlay-pause').classList.add('hidden');
+  show('keys');
+}
+function closeKeys() {
+  keyListen = null;
+  const ret = UI.keysReturn || 'menu';
+  UI.keysReturn = null;
+  if (ret === 'pause' && game) {
+    $$('.screen').forEach(el => el.classList.add('hidden'));
+    $('#overlay-pause').classList.remove('hidden');
+    return;
+  }
+  show(ret === 'pause' ? 'menu' : ret);
+}
+function buildHelp() {
+  const rows = [
+    { ids: ['up', 'left', 'down', 'right'], desc: '이동' },
+    { ids: ['move1', 'move2', 'move3', 'move4'], desc: '기술 1~4 (상대를 자동 조준)' },
+    { ids: ['dodge'], desc: '회피 구르기 (무적 시간 있음)' },
+    { ids: ['switchNext', 'switchPrev'], desc: '다음 / 이전 포켓몬으로 교체. 하단 아이콘 클릭도 됩니다' },
+    { ids: ['mega'], desc: '메가진화 (팀당 1회). 오메가몬은 X진화, 네크로즈마는 울트라, 아르세우스는 레전드플레이트' },
+    { ids: ['gmax'], desc: '거다이맥스 (팀당 1회, 메가와 따로). HP가 2배가 된다. 같은 포켓몬은 메가와 거다이맥스 중 하나만' },
+    { ids: ['zmove'], desc: '전용 Z기술 (팀당 1회). 메가·거다이맥스와 따로 쓸 수 있다' },
+    { ids: ['pause'], desc: '일시정지' },
+  ];
+  $('#helpKeys').innerHTML = rows.map(r => {
+    const keys = r.ids.flatMap(id => Controls.codes(id)).map(c => `<kbd>${Controls.label(c)}</kbd>`).join('');
+    return `<tr><td>${keys}</td><td>${r.desc}</td></tr>`;
+  }).join('');
+}
+function buildKeys() {
+  const box = $('#keyRows');
+  box.innerHTML = '';
+  const groups = document.createElement('div');
+  groups.className = 'key-groups';
+  let section = null;
+  let last = '';
+  for (const a of Controls.actions) {
+    if (a.group !== last) {
+      last = a.group;
+      section = document.createElement('section');
+      section.innerHTML = `<h3>${a.group}</h3>`;
+      groups.appendChild(section);
+    }
+    const row = document.createElement('div');
+    row.className = 'key-row';
+    const lab = document.createElement('div');
+    lab.className = 'key-label';
+    lab.textContent = a.label;
+    row.appendChild(lab);
+    for (let slot = 0; slot < 2; slot++) {
+      const b = document.createElement('button');
+      const code = Controls.binds[a.id][slot];
+      const listening = keyListen && keyListen.id === a.id && keyListen.slot === slot;
+      b.type = 'button';
+      b.className = 'keycap' + (listening ? ' listen' : '') + (code ? '' : ' empty');
+      b.textContent = listening ? '입력…' : (code ? Controls.label(code) : '없음');
+      b.onclick = () => {
+        keyListen = { id: a.id, slot };
+        keyMsg = '';
+        Sound.play('select');
+        buildKeys();
+      };
+      row.appendChild(b);
+    }
+    section.appendChild(row);
+  }
+  box.appendChild(groups);
+  $('#keysHint').textContent = keyListen
+    ? '원하는 키를 누르세요. Delete는 이 칸을 지우고, Esc는 취소합니다. Esc 키 자체는 지정할 수 없습니다.'
+    : (keyMsg || '칸을 누른 뒤 원하는 키를 누르세요. 동작마다 키가 두 개까지 있고, 같은 키는 한 곳에만 쓸 수 있습니다.');
+}
+$('#btnMenuKeys').onclick = () => { Sound.play('select'); openKeys('menu'); };
+$('#btnHelpKeys').onclick = () => { Sound.play('select'); openKeys('help'); };
+$('#btnPauseKeys').onclick = () => { Sound.play('select'); openKeys('pause'); };
+$('#btnKeysDone').onclick = () => { Sound.play('select'); closeKeys(); };
+$('#btnKeysReset').onclick = () => {
+  Controls.reset();
+  keyListen = null;
+  keyMsg = '기본 키로 되돌렸습니다.';
+  Sound.play('select');
+  buildKeys();
+};
 
 /* ---------------- 입력 ---------------- */
 addEventListener('keydown', e => {
+  if (e.repeat) return;
   if (e.target.tagName === 'INPUT') return;
+  if (keyListen) {
+    e.preventDefault();
+    if (e.code === 'Escape') {
+      keyListen = null;
+      Sound.play('back');
+    } else if (e.code === 'Backspace' || e.code === 'Delete') {
+      const ok = Controls.clear(keyListen.id, keyListen.slot);
+      keyMsg = ok ? '' : '동작마다 키는 하나 이상 남겨 두세요.';
+      keyListen = null;
+      Sound.play(ok ? 'select' : 'back');
+    } else if (Controls.assign(keyListen.id, keyListen.slot, e.code)) {
+      keyListen = null;
+      keyMsg = '';
+      Sound.play('select');
+    } else {
+      Sound.play('back');
+      return;
+    }
+    buildKeys();
+    return;
+  }
   Sound.init();
   if (!Input.down.has(e.code)) Input.pressed.add(e.code);
   Input.down.add(e.code);
-  if (game) {
-    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
-    if ((e.code === 'Escape' || e.code === 'KeyP') && !game.ended) setPaused(!game.paused);
+  const keysOpen = !$('#screen-keys').classList.contains('hidden');
+  if (game && !keysOpen) {
+    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code) || Controls.owns(e.code)) e.preventDefault();
+    if (Controls.pressed('pause') && !game.ended) setPaused(!game.paused);
   }
 });
 addEventListener('keyup', e => Input.down.delete(e.code));
 addEventListener('blur', () => { Input.down.clear(); if (game && !game.ended) setPaused(true); });
 
-/* ---------------- 화면 맞춤 & 루프 ---------------- */
+/* ---------------- 화면 맞춤 & 터치 ---------------- */
+var TouchStick = { x: 0, y: 0 };
+var TouchHold = [false, false, false, false];
+
 function fit() {
-  const s = Math.min(innerWidth / W, innerHeight / H);
-  $('#stage').style.transform = `translate(-50%, -50%) scale(${s})`;
+  const vv = window.visualViewport;
+  const vw = vv ? vv.width : innerWidth;
+  const vh = vv ? vv.height : innerHeight;
+  const s = Math.min(vw / W, vh / H);
+  const mobile = vw < 900;
+  document.body.classList.toggle('mobile-layout', mobile);
+  const stage = $('#stage');
+  const pf = $('#playfield');
+  if (mobile) {
+    stage.style.transform = 'none';
+    const fieldW = W * s, fieldH = H * s;
+    const left = (vv ? vv.offsetLeft : 0) + (vw - fieldW) / 2;
+    const top = (vv ? vv.offsetTop : 0) + (vh - fieldH) / 2;
+    pf.style.left = (left + fieldW / 2) + 'px';
+    pf.style.top = (top + fieldH / 2) + 'px';
+    pf.style.transform = `translate(-50%, -50%) scale(${s})`;
+    document.documentElement.style.setProperty('--field-left', left + 'px');
+    document.documentElement.style.setProperty('--field-top', top + 'px');
+    document.documentElement.style.setProperty('--field-h', fieldH + 'px');
+    document.documentElement.style.setProperty('--letter', Math.max(0, vh - (top + fieldH)) + 'px');
+  } else {
+    stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+    pf.style.left = '0';
+    pf.style.top = '0';
+    pf.style.transform = 'none';
+    const left = (vw - W * s) / 2, top = (vh - H * s) / 2;
+    document.documentElement.style.setProperty('--field-left', left + 'px');
+    document.documentElement.style.setProperty('--field-top', top + 'px');
+    document.documentElement.style.setProperty('--field-h', (H * s) + 'px');
+    document.documentElement.style.setProperty('--letter', '0px');
+  }
+  const touch = document.body.classList.contains('touch-ui') && document.body.classList.contains('in-battle');
+  const letter = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--letter')) || 0;
+  document.body.classList.toggle('touch-dock', touch && mobile && letter >= 130);
+  document.body.classList.toggle('touch-overlay', touch && (!mobile || letter < 130));
 }
+function syncTouchMode() {
+  const on = !!(game && game.playerSide() && !game.ended && !game.paused);
+  if (document.body.classList.contains('in-battle') === on) return;
+  document.body.classList.toggle('in-battle', on);
+  if (!on) TouchHold.fill(false);
+  fit();
+}
+function bindTouch() {
+  if (matchMedia('(pointer: coarse)').matches) document.body.classList.add('touch-ui');
+  addEventListener('touchstart', () => {
+    if (!document.body.classList.contains('touch-ui')) {
+      document.body.classList.add('touch-ui');
+      fit();
+    }
+  }, { passive: true });
+
+  const stick = $('#stick'), knob = $('#knob');
+  let pid = null;
+  const place = (x, y) => {
+    const r = stick.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    let dx = x - cx, dy = y - cy;
+    const max = r.width * 0.42;
+    const dist = Math.hypot(dx, dy) || 1;
+    const clamped = Math.min(dist, max);
+    const nx = dx / dist, ny = dy / dist;
+    const mag = clamped / max;
+    TouchStick.x = mag < 0.18 ? 0 : nx * mag;
+    TouchStick.y = mag < 0.18 ? 0 : ny * mag;
+    knob.style.transform = `translate(${nx * clamped}px, ${ny * clamped}px)`;
+  };
+  const releaseStick = () => {
+    pid = null;
+    TouchStick.x = TouchStick.y = 0;
+    knob.style.transform = '';
+  };
+  stick.addEventListener('pointerdown', e => {
+    pid = e.pointerId;
+    stick.setPointerCapture(e.pointerId);
+    place(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  stick.addEventListener('pointermove', e => { if (e.pointerId === pid) place(e.clientX, e.clientY); });
+  stick.addEventListener('pointerup', releaseStick);
+  stick.addEventListener('pointercancel', releaseStick);
+
+  $('#touchpad').addEventListener('pointerdown', e => {
+    const btn = e.target.closest('[data-act], [data-move], [data-slot]');
+    if (!btn) return;
+    const p = playerNow();
+    if (!p) return;
+    e.preventDefault();
+    if (btn.dataset.move != null) {
+      TouchHold[+btn.dataset.move] = true;
+      btn.setPointerCapture(e.pointerId);
+    } else if (btn.dataset.act === 'dodge') p.dodge([TouchStick.x || p.input.x, TouchStick.y || p.input.y]);
+    else if (btn.dataset.act === 'switch') p.requestSwitch();
+    else if (btn.dataset.act === 'mega') p.megaEvolve();
+    else if (btn.dataset.act === 'gmax') p.gmaxEvolve();
+    else if (btn.dataset.act === 'z') p.useZ();
+    else if (btn.dataset.slot != null) p.requestSwitch(+btn.dataset.slot);
+  });
+  const clearMove = e => {
+    const btn = e.target.closest ? e.target.closest('[data-move]') : null;
+    if (btn) TouchHold[+btn.dataset.move] = false;
+  };
+  $('#touchpad').addEventListener('pointerup', clearMove);
+  $('#touchpad').addEventListener('pointercancel', () => TouchHold.fill(false));
+}
+function updateTouchPad(p) {
+  if (!document.body.classList.contains('touch-dock') || !p) return;
+  const box = $('#touchMoves');
+  if (box.childElementCount !== p.mon.moves.length) {
+    box.innerHTML = p.mon.moves.map((_, i) => `<button type="button" data-move="${i}"><b></b><small></small></button>`).join('');
+  }
+  [...box.children].forEach((el, i) => {
+    const sl = p.mon.moves[i];
+    const mv = MOVES[sl && sl.pp <= 0 ? 'struggle' : sl.id];
+    const name = el.querySelector('b'), sub = el.querySelector('small');
+    if (name.textContent !== mv.name) name.textContent = mv.name;
+    const pp = sl.pp <= 0 ? '발버둥' : `PP ${sl.pp}`;
+    if (sub.textContent !== pp) sub.textContent = pp;
+  });
+  const team = $('#touchTeam');
+  if (game.ffa) { if (team.innerHTML) team.innerHTML = ''; return; }
+  if (team.childElementCount !== p.team.length) {
+    team.innerHTML = p.team.map((_, i) => `<button type="button" data-slot="${i}">${i + 1}</button>`).join('');
+  }
+  [...team.children].forEach((el, i) => {
+    el.classList.toggle('on', i === p.active);
+    el.disabled = p.team[i].fainted;
+  });
+}
+
+bindTouch();
 addEventListener('resize', fit);
+if (window.visualViewport) visualViewport.addEventListener('resize', fit);
 fit();
 
 let lastT = performance.now();
@@ -833,7 +1162,10 @@ function frame(now) {
     if (!game.paused) game.update(dt);
     game.render();
     updateHUD();
-  }
+    const touchSide = game.playerSide();
+    if (touchSide) updateTouchPad(touchSide);
+    syncTouchMode();
+  } else if (document.body.classList.contains('in-battle')) syncTouchMode();
   Input.pressed.clear();
   requestAnimationFrame(frame);
 }

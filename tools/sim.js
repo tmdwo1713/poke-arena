@@ -10,7 +10,7 @@ const ctx2d = new Proxy({}, {
 });
 function fakeEl() {
   return {
-    style: { setProperty: noop }, className: '', textContent: '', innerHTML: '', children: [],
+    style: { setProperty: noop }, className: '', classList: { add: noop, remove: noop, toggle: noop }, dataset: {}, textContent: '', innerHTML: '', children: [],
     appendChild(c) { this.children.push(c); return c; }, getContext: () => ctx2d,
     naturalWidth: 60, naturalHeight: 60, offsetWidth: 0,
     set src(v) { this._src = v; if (this.onload) this.onload(); }, get src() { return this._src; },
@@ -120,6 +120,90 @@ function abilityTests() {
   check('FFA ends with one winner', gFfa.ended && gFfa.livingSides().length <= 1);
   const rF = gFfa.result();
   check('FFA result ranking', rF.ffa && rF.ranking.length === 6 && rF.winnerName);
+  const ome = makeMon('omegamon', 50);
+  check('Omegamon is fire/ice', ome.sp.types[0] === 'fire' && ome.sp.types[1] === 'ice');
+  check('Grey Sword is fire', MOVES.greysword.type === 'fire');
+  check('Fire is neutral on fire/ice', typeEffect('fire', ['fire', 'ice']) === 1);
+  const gO = new Game({ arena: 'stadium', diff: 0.5, playerTeam: ['omegamon'], cpuTeam: ['charizard'], onEnd: () => {} });
+  gO.state = 'fight';
+  check('Omegamon starts as the normal form', gO.sides[0].mon.sp.id === 90001 && gO.sides[0].mon.sp.name === '오메가몬');
+  check('Omegamon X gains All Delete', gO.sides[0].megaEvolve() && gO.sides[0].mon.sp.id === 90002 && gO.sides[0].mon.sp.name === '오메가몬X' && gO.sides[0].mon.moves.some(sl => sl.id === 'alldelete') && !gO.sides[0].mon.moves.some(sl => sl.id === 'icebeam'));
+  check('Base Necrozma is hidden', POKEMON_BY_KEY.necrozma.hidden === true);
+  const dusk = makeMon('necrozmadusk', 50);
+  check('Dusk Mane starts as itself', dusk.sp.id === 10155 && dusk.sp.name === '네크로즈마(황혼의 갈기)');
+  const gN = new Game({ arena: 'stadium', diff: 0.5, playerTeam: ['necrozmadusk'], cpuTeam: ['snorlax'], onEnd: () => {} });
+  gN.state = 'fight';
+  check('Dusk Mane becomes Ultra Necrozma', gN.sides[0].megaEvolve() && gN.sides[0].mon.sp.id === 10157 && gN.sides[0].mon.sp.name === '울트라네크로즈마' && gN.sides[0].mon.ability === 'neuroforce' && gN.sides[0].mon.sp.types[0] === 'psychic' && gN.sides[0].mon.sp.types[1] === 'dragon');
+  const dawn = makeMon('necrozmadawn', 50);
+  const gD = new Game({ arena: 'stadium', diff: 0.5, playerTeam: ['necrozmadawn'], cpuTeam: ['snorlax'], onEnd: () => {} });
+  gD.state = 'fight';
+  check('Dawn Wings starts unfused', dawn.sp.id === 10156);
+  check('Dawn Wings becomes Ultra Necrozma', gD.sides[0].megaEvolve() && gD.sides[0].mon.sp.id === 10157 && gD.sides[0].mon.ability === 'neuroforce');
+  const gAr = new Game({ arena: 'stadium', diff: 0.5, playerTeam: ['arceus'], cpuTeam: ['blastoise'], onEnd: () => {} });
+  gAr.state = 'fight';
+  gAr.sides[1].iframes = 0;
+  check('Arceus starts normal', gAr.sides[0].mon.sp.id === 493 && gAr.sides[0].mon.ability === 'multitype');
+  check('Arceus equips the Legend Plate', gAr.sides[0].megaEvolve() && gAr.sides[0].mon.ability === 'legendplate' && gAr.sides[0].mon.sp.name === '아르세우스(레전드플레이트)');
+  gAr.performMove(gAr.sides[0], 'flamethrower');
+  check('Legend Plate matches the move', gAr.sides[0].mon.sp.types[0] === 'fire' && gAr.sides[0].mon.sp.id === '493-fire');
+  gAr.sides[0].gcd = 0;
+  gAr.performMove(gAr.sides[0], 'judgment');
+  check('Judgment aims at the weakness', gAr.sides[0].mon.sp.types[0] === 'electric' && gAr.sides[0].mon.sp.id === '493-electric');
+  const before = gAr.sides[1].mon.hp;
+  gAr.applyHit(gAr.sides[0], gAr.sides[0].mon, gAr.sides[1], MOVES.judgment, [1, 0], 91);
+  check('Judgment with the plate is super effective', gAr.sides[1].mon.hp < before);
+  const forms = POKEMON_BY_KEY.greninja.megas;
+  check('Greninja has mega and Ash', forms.length === 2 && forms[1].name === '지우개굴닌자' && forms[1].ability === 'battlebond');
+  const gA = new Game({ arena: 'stadium', diff: 0.5, playerTeam: [{ key: 'greninja', mega: 1 }], cpuTeam: ['pikachu'], onEnd: () => {} });
+  gA.state = 'fight';
+  check('Ash-Greninja evolves', gA.sides[0].megaEvolve() && gA.sides[0].mon.sp.id === 10117 && gA.sides[0].mon.ability === 'battlebond');
+  const zard = POKEMON_BY_KEY.charizard;
+  check('Charizard mega and Gigantamax are separate', megaForms(zard).length === 2 && megaForms(zard)[0].id === 10034 && gmaxFormOf(zard).id === 10196);
+  const gZ = new Game({ arena: 'stadium', diff: 0.5, playerTeam: [{ key: 'charizard' }, { key: 'pikachu' }], cpuTeam: ['snorlax'], onEnd: () => {} });
+  gZ.state = 'fight';
+  const zHp = gZ.sides[0].mon.maxHp;
+  check('Charizard starts normal', gZ.sides[0].mon.sp.id === 6);
+  check('Mega does not spend Gigantamax', gZ.sides[0].megaEvolve() && gZ.sides[0].mon.sp.id === 10034 && gZ.megaOK[0] === false && gZ.gmaxOK[0] === true && gZ.sides[0].mon.maxHp !== zHp * 2);
+  check('Same Pokemon cannot Gigantamax after mega', gZ.sides[0].canGmax() === false);
+  gZ.sides[0].active = 1;
+  const pHp = gZ.sides[0].mon.maxHp;
+  check('Teammate can still Gigantamax', gZ.sides[0].gmaxEvolve() && gZ.sides[0].mon.sp.id === 10199 && gZ.sides[0].mon.maxHp === pHp * 2 && gZ.gmaxOK[0] === false);
+  const gS = new Game({ arena: 'stadium', diff: 0.5, playerTeam: ['snorlax'], cpuTeam: ['pikachu'], onEnd: () => {} });
+  gS.state = 'fight';
+  check('Snorlax Z-Move once', gS.sides[0].useZ() && gS.zOK[0] === false && gS.sides[0].canZ() === false);
+  const gW = new Game({ arena: 'stadium', diff: 0.5, watch: true, playerTeam: [{ key: 'charizard', limit: 'mega' }], cpuTeam: [{ key: 'pikachu', limit: 'z' }], onEnd: () => {} });
+  gW.state = 'fight';
+  check('CPU watch Charizard is mega only', gW.sides[0].canMega() === true && gW.sides[0].canGmax() === false);
+  check('CPU watch Pikachu is Z only', gW.sides[1].canZ() === true && gW.sides[1].canGmax() === false);
+  const gPlay = new Game({ arena: 'stadium', diff: 0.5, playerTeam: [{ key: 'charizard', limit: 'mega' }], cpuTeam: ['snorlax'], onEnd: () => {} });
+  gPlay.state = 'fight';
+  check('Player ignores the CPU-only limit', gPlay.sides[0].canMega() === true && gPlay.sides[0].canGmax() === true);
+  check('Sirfetchd and Dracovish exist', POKEMON_BY_KEY.sirfetchd.name === '창파나이트' && MOVES.meteorassault.name === '스타어설트' && POKEMON_BY_KEY.dracovish.name === '어래곤' && MOVES.fishiousrend.name === '아가미물기' && MOVES.fishiousrend.first && MOVES.fishiousrend.bite);
+  check('Ash Pikachu has 10,000,000 Volt Thunderbolt', POKEMON_BY_KEY.ashpikachu.name === '지우피카츄' && Z_MOVES.ashpikachu === 'tenmillionvolt' && MOVES.tenmillionvolt.name === '1000만볼트' && MOVES.tenmillionvolt.z && Z_MOVES.pikachu === 'catastropika');
+  check('Eternatus can Gigantamax', gmaxFormOf(POKEMON_BY_KEY.eternatus).id === 10190 && gmaxFormOf(POKEMON_BY_KEY.eternatus).name === '거다이맥스무한다이노');
+  const tapuKeys = ['tapukoko', 'tapulele', 'tapubulu', 'tapufini'];
+  const tapuNames = ['카푸꼬꼬꼭', '카푸나비나', '카푸브루루', '카푸느지느'];
+  check('Tapus share Natures Madness and Guardian of Alola', tapuKeys.every((k, i) => POKEMON_BY_KEY[k] && POKEMON_BY_KEY[k].legend && POKEMON_BY_KEY[k].name === tapuNames[i] && POKEMON_BY_KEY[k].moves.includes('naturesmadness') && Z_MOVES[k] === 'guardianofalola') && MOVES.naturesmadness.name === '자연의분노' && MOVES.naturesmadness.halfHp && MOVES.guardianofalola.name === '알로라의수호자' && MOVES.guardianofalola.hpRatio === 0.75 && MOVES.guardianofalola.z);
+  const gKoko = new Game({ arena: 'stadium', diff: 0.5, playerTeam: ['tapukoko'], cpuTeam: ['snorlax'], onEnd: () => {} });
+  check('Tapu Koko sets Electric Terrain', gKoko.terrain && gKoko.terrain.type === 'electric' && POKEMON_BY_KEY.tapukoko.ability === 'electricsurge');
+  const gFini = new Game({ arena: 'stadium', diff: 0.5, playerTeam: ['tapufini'], cpuTeam: ['snorlax'], onEnd: () => {} });
+  check('Tapu Fini sets Misty Terrain', gFini.terrain && gFini.terrain.type === 'misty' && POKEMON_BY_KEY.tapulele.ability === 'psychicsurge' && POKEMON_BY_KEY.tapubulu.ability === 'grassysurge');
+  const addedMons = { clefable: '픽시', serperior: '샤로다', cetitan: '우락고래', archaludon: '브리두라스', raikou: '라이코', jirachi: '지라치', terrakion: '테라키온', marshadow: '마샤도', zeraora: '제라오라', melmetal: '멜메탈', ogerpon: '오거폰', calyrexshadow: '버드렉스(흑마 탄 모습)' };
+  check('Added finals and legends', Object.entries(addedMons).every(([k, n]) => POKEMON_BY_KEY[k] && POKEMON_BY_KEY[k].name === n && POKEMON_BY_KEY[k].ability));
+  check('Added beasts and swords are legendary', ['raikou', 'entei', 'suicune', 'cobalion', 'terrakion', 'virizion', 'ogerpon', 'calyrexice'].every(k => POKEMON_BY_KEY[k].legend));
+  const gRain = new Game({ arena: 'stadium', diff: 0.5, playerTeam: ['politoed'], cpuTeam: ['snorlax'], onEnd: () => {} });
+  check('Politoed sets rain', gRain.weather && gRain.weather.type === 'rain');
+  const gH = new Game({ arena: 'stadium', diff: 0.5, playerTeam: ['breloom'], cpuTeam: ['pikachu'], onEnd: () => {} });
+  const rolls = {};
+  for (let i = 0; i < 400; i++) {
+    const n = gH.shotCount(MOVES.bulletseed, { ability: '' });
+    rolls[n] = (rolls[n] || 0) + 1;
+  }
+  check('Bullet Seed rolls 2 to 5', [2, 3, 4, 5].every(k => rolls[k] > 0) && !rolls[1] && !rolls[6]);
+  check('Three shots are more common than five', rolls[3] > rolls[5] && rolls[2] > rolls[4]);
+  check('Skill Link fires 5 seeds', gH.shotCount(MOVES.bulletseed, { ability: 'skilllink' }) === 5);
+  check('Battle Bond shuriken is 3', gH.shotCount(MOVES.watershuriken, { ability: 'battlebond' }) === 3);
+  check('Dragon Darts stays 2', gH.shotCount(MOVES.dragondarts, { ability: '' }) === 2);
 }
 abilityTests();
 runSim(${parseInt(process.argv[2] || '20', 10)});

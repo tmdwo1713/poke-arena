@@ -6,12 +6,18 @@ const DMG_SCALE = 0.38;
 const TIME_LIMIT = 300;
 const WEATHER_TIME = 25;
 const MOLD_BREAKERS = ['moldbreaker', 'turboblaze', 'teravolt'];
-const NO_TRACE = ['trace', 'wonderguard', 'disguise', 'multitype', 'imposter'];
+const NO_TRACE = ['trace', 'wonderguard', 'disguise', 'multitype', 'legendplate', 'imposter'];
 const WEATHER = {
   sun:  { ko: '쾌청',     primalKo: '큰가뭄', start: '햇살이 강해졌다!',          primalStart: '햇살이 매우 강해졌다!',     color: '#ffb340' },
   rain: { ko: '비',       primalKo: '큰비',   start: '비가 내리기 시작했다!',     primalStart: '폭우가 쏟아지기 시작했다!', color: '#5aa0ff' },
   sand: { ko: '모래바람', primalKo: '모래바람', start: '모래바람이 불기 시작했다!', primalStart: '모래바람이 불기 시작했다!', color: '#d8b070' },
   snow: { ko: '눈',       primalKo: '눈',     start: '눈이 내리기 시작했다!',     primalStart: '눈이 내리기 시작했다!',     color: '#d7ecff' },
+};
+const TERRAIN = {
+  electric: { ko: '일렉트릭필드', color: '#f7d02c', start: '일렉트릭필드가 펼쳐졌다!' },
+  psychic:  { ko: '사이코필드',   color: '#f85888', start: '사이코필드가 펼쳐졌다!' },
+  grassy:   { ko: '그래스필드',   color: '#7ac74c', start: '그래스필드가 펼쳐졌다!' },
+  misty:    { ko: '미스트필드',   color: '#f4bdc9', start: '미스트필드가 펼쳐졌다!' },
 };
 const FFA_COLORS = ['#4fb3ff', '#ff5a5a', '#4ade80', '#facc15', '#c084fc', '#fb923c'];
 const FFA_SPAWNS = [
@@ -24,8 +30,133 @@ const STATUS_TIME = { brn: 6, psn: 8, par: 5, frz: 1.3 };
 const STATUS_IMMUNE = { brn: ['fire'], par: ['electric'], frz: ['ice'], psn: ['poison', 'steel'] };
 const KIND_KO = { proj: '투사체', beam: '광선', melee: '근접', dash: '돌진', nova: '광역', target: '낙하' };
 
-const MOVE_KEYS = [['KeyJ', 'Digit1'], ['KeyK', 'Digit2'], ['KeyL', 'Digit3'], ['KeyI', 'Digit4']];
-const DODGE_KEYS = ['Space', 'ShiftLeft', 'ShiftRight'];
+const KEY_LABELS = {
+  Space: 'Space', Escape: 'Esc', Enter: 'Enter', Tab: 'Tab',
+  Backspace: 'Bksp', Delete: 'Del', CapsLock: 'Caps',
+  ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Ctrl', ControlRight: 'Ctrl',
+  AltLeft: 'Alt', AltRight: 'Alt', MetaLeft: 'Win', MetaRight: 'Win',
+  ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
+  Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Backslash: '\\',
+  Semicolon: ';', Quote: "'", Backquote: '`', Comma: ',', Period: '.', Slash: '/',
+};
+
+// 배틀 키. 동작마다 칸이 두 개고, localStorage(pa_keys)에 저장된다.
+const Controls = {
+  actions: [
+    { id: 'up', group: '이동', label: '위' },
+    { id: 'down', group: '이동', label: '아래' },
+    { id: 'left', group: '이동', label: '왼쪽' },
+    { id: 'right', group: '이동', label: '오른쪽' },
+    { id: 'move1', group: '기술', label: '기술 1' },
+    { id: 'move2', group: '기술', label: '기술 2' },
+    { id: 'move3', group: '기술', label: '기술 3' },
+    { id: 'move4', group: '기술', label: '기술 4' },
+    { id: 'dodge', group: '행동', label: '회피' },
+    { id: 'switchNext', group: '행동', label: '다음 교체' },
+    { id: 'switchPrev', group: '행동', label: '이전 교체' },
+    { id: 'mega', group: '행동', label: '메가진화' },
+    { id: 'gmax', group: '행동', label: '거다이맥스' },
+    { id: 'zmove', group: '행동', label: 'Z기술' },
+    { id: 'pause', group: '행동', label: '일시정지' },
+  ],
+  defaults: {
+    up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'],
+    left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
+    move1: ['KeyJ', 'Digit1'], move2: ['KeyK', 'Digit2'],
+    move3: ['KeyL', 'Digit3'], move4: ['KeyI', 'Digit4'],
+    dodge: ['Space', 'ShiftLeft'],
+    switchNext: ['KeyQ', null], switchPrev: ['KeyE', null],
+    mega: ['KeyR', null], gmax: ['KeyG', null], zmove: ['KeyZ', null], pause: ['Escape', 'KeyP'],
+  },
+  binds: null,
+
+  norm(code) {
+    if (code === 'ShiftRight') return 'ShiftLeft';
+    if (code === 'ControlRight') return 'ControlLeft';
+    if (code === 'AltRight') return 'AltLeft';
+    return code;
+  },
+  label(code) {
+    if (!code) return '';
+    if (KEY_LABELS[code]) return KEY_LABELS[code];
+    if (code.startsWith('Key')) return code.slice(3);
+    if (code.startsWith('Digit')) return code.slice(5);
+    if (code.startsWith('Numpad')) return 'Num' + code.slice(6);
+    if (code.startsWith('F') && code.length <= 3) return code;
+    return code;
+  },
+  codes(id) { return (this.binds[id] || []).filter(Boolean); },
+  text(ids) {
+    const list = (Array.isArray(ids) ? ids : [ids]).flatMap(id => this.codes(id));
+    return list.map(c => this.label(c)).join(' / ') || '—';
+  },
+  primaryText(ids) {
+    const list = (Array.isArray(ids) ? ids : [ids]).map(id => this.codes(id)[0]).filter(Boolean);
+    return list.map(c => this.label(c)).join(' / ') || '—';
+  },
+  hit(code, set) {
+    if (!code) return false;
+    if (code === 'ShiftLeft') return set.has('ShiftLeft') || set.has('ShiftRight');
+    if (code === 'ControlLeft') return set.has('ControlLeft') || set.has('ControlRight');
+    if (code === 'AltLeft') return set.has('AltLeft') || set.has('AltRight');
+    return set.has(code);
+  },
+  down(id) { return this.codes(id).some(c => this.hit(c, Input.down)); },
+  pressed(id) { return this.codes(id).some(c => this.hit(c, Input.pressed)); },
+  owns(code) {
+    const n = this.norm(code);
+    return this.actions.some(a => (this.binds[a.id] || []).some(c => c && this.norm(c) === n));
+  },
+  load() {
+    const out = {};
+    for (const a of this.actions) out[a.id] = this.defaults[a.id].slice();
+    try {
+      const saved = JSON.parse(localStorage.getItem('pa_keys') || 'null');
+      if (!saved || typeof saved !== 'object') return out;
+      const used = new Set();
+      for (const a of this.actions) {
+        if (!Array.isArray(saved[a.id])) continue;
+        const slots = [null, null];
+        saved[a.id].slice(0, 2).forEach((code, i) => {
+          if (typeof code !== 'string' || !code) return;
+          const n = this.norm(code);
+          if (used.has(n)) return;
+          used.add(n);
+          slots[i] = n;
+        });
+        if (slots.some(Boolean)) out[a.id] = slots;
+      }
+    } catch (e) { /* 기본 키 */ }
+    return out;
+  },
+  save() {
+    const data = {};
+    for (const a of this.actions) data[a.id] = this.binds[a.id].slice();
+    localStorage.setItem('pa_keys', JSON.stringify(data));
+  },
+  assign(id, slot, code) {
+    const n = this.norm(code);
+    if (!n || n === 'Escape') return false;
+    for (const a of this.actions) {
+      const arr = this.binds[a.id];
+      for (let i = 0; i < arr.length; i++) if (arr[i] && this.norm(arr[i]) === n) arr[i] = null;
+    }
+    this.binds[id][slot] = n;
+    this.save();
+    return true;
+  },
+  clear(id, slot) {
+    if (this.codes(id).length <= 1 && this.binds[id][slot]) return false;
+    this.binds[id][slot] = null;
+    this.save();
+    return true;
+  },
+  reset() {
+    for (const a of this.actions) this.binds[a.id] = this.defaults[a.id].slice();
+    this.save();
+  },
+};
+Controls.binds = Controls.load();
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -74,7 +205,7 @@ function makeMon(entry, level, opts = {}) {
     status: null, statusT: 0, fainted: false,
     ability: sp.ability, atkMod: 1, defMod: 1, speMod: 1, spaMod: 1,
     flashFire: false, disguiseBroken: false,
-    megaIdx: n.mega || 0, megaed: false, transformed: false,
+    megaIdx: n.mega || 0, megaed: false, transformed: false, limit: n.limit || '',
   };
 }
 
@@ -103,7 +234,7 @@ function abilityBlock(defAbility, mv, eff, atkType) {
 }
 
 function typeEffFor(srcMon, mv, defMon, game) {
-  const atk = attackType(srcMon, mv);
+  const atk = plateAttackType(srcMon, mv, defMon) || attackType(srcMon, mv);
   if (atk === 'none') return 1;
   let types = defMon.sp.types.slice();
   if (srcMon.ability === 'scrappy' && (atk === 'normal' || atk === 'fighting')) types = types.filter(t => t !== 'ghost');
@@ -292,28 +423,74 @@ class Side {
     return true;
   }
 
-  canMega() {
-    return this.g.megaOK[this.idx] && this.mon.baseSp.megas && !this.mon.megaed && !this.mon.transformed &&
-      this.faintT <= 0 && !this.mon.fainted && this.switching <= 0;
+  canMega() { return this.canBurst('mega'); }
+  canGmax() { return this.canBurst('gmax'); }
+  cpuLimited(kind) { return !!(this.ai && this.mon.limit && this.mon.limit !== kind); }
+  canZ() {
+    if (this.cpuLimited('z') || !this.g.zOK[this.idx]) return false;
+    if (!Z_MOVES[this.mon.baseSp.key] || this.mon.transformed) return false;
+    return this.faintT <= 0 && !this.mon.fainted && this.switching <= 0;
+  }
+  canBurst(kind) {
+    if (this.cpuLimited(kind)) return false;
+    if (this.mon.transformed || this.mon.megaed || this.mon.gmax) return false;
+    if (this.faintT > 0 || this.mon.fainted || this.switching > 0) return false;
+    if (kind === 'mega') return this.g.megaOK[this.idx] && megaForms(this.mon.baseSp).length > 0;
+    if (kind === 'gmax') return this.g.gmaxOK[this.idx] && !!gmaxFormOf(this.mon.baseSp);
+    return false;
   }
 
-  megaEvolve() {
-    if (!this.canMega()) return false;
-    const form = this.mon.baseSp.megas[this.mon.megaIdx || 0];
+  megaEvolve() { return this.burst('mega'); }
+  gmaxEvolve() { return this.burst('gmax'); }
+
+  burst(kind) {
+    if (!this.canBurst(kind)) return false;
+    const form = kind === 'gmax'
+      ? gmaxFormOf(this.mon.baseSp)
+      : megaForms(this.mon.baseSp)[this.mon.megaIdx || 0];
     const ratio = this.mon.hp / this.mon.maxHp;
     this.mon.sp = form;
     this.mon.ability = form.ability;
     this.mon.stats = calcStats(form, this.mon.level);
     this.mon.maxHp = Math.round(this.mon.stats.hp * (this.mon.hpMult || 1));
     this.mon.hp = Math.max(1, Math.round(this.mon.maxHp * ratio));
+    if (form.gmax) {
+      this.mon.maxHp *= 2;
+      this.mon.hp = Math.max(1, this.mon.hp * 2);
+      this.mon.gmax = true;
+      this.g.gmaxOK[this.idx] = false;
+    } else {
+      this.g.megaOK[this.idx] = false;
+    }
     this.mon.megaed = true;
-    this.g.megaOK[this.idx] = false;
+    if (form.ability === 'legendplate') {
+      for (const id of Object.values(ARCEUS_SPRITE)) {
+        if (!spriteReady.has('f' + id)) setSprite(new Image(), id, false);
+        if (!spriteReady.has('b' + id)) setSprite(new Image(), id, true);
+      }
+    }
+    if (form.gainMove && MOVES[form.gainMove] && !this.mon.moves.some(sl => sl.id === form.gainMove)) {
+      const mv = MOVES[form.gainMove];
+      let i = this.mon.moves.findIndex(sl => !MOVES[sl.id].sig);
+      if (i < 0) i = this.mon.moves.length - 1;
+      this.mon.moves[i] = { id: form.gainMove, pp: mv.pp, maxPp: mv.pp, cd: 0 };
+    }
     this.applySprite();
     this.g.burst(this.x, this.y - LIFT, '#ffe14d', 24, 280);
     this.g.effects.push({ type: 'ring', x: this.x, y: this.y, r: 90, color: '#ffe14d', life: 0.55, max: 0.55 });
     this.g.banner(`${this.mon.sp.name}!`, true);
     Sound.play('super');
     this.g.onEntry(this);
+    return true;
+  }
+
+  useZ() {
+    if (!this.canZ() || !this.canAct()) return false;
+    const id = Z_MOVES[this.mon.baseSp.key];
+    this.g.zOK[this.idx] = false;
+    this.mon.zUsed = true;
+    this.gcd = 0.25;
+    this.g.performMove(this, id);
     return true;
   }
 
@@ -568,7 +745,12 @@ class AI {
     if (!f) { this.intent = -1; return; }
     const alive = s.team.map((x, i) => i).filter(i => i !== s.active && !s.team[i].fainted);
 
-    if (s.canMega() && Math.random() < 0.4 + 0.5 * this.d) s.megaEvolve();
+    if (s.canMega() && s.canGmax()) {
+      if (Math.random() < 0.55) s.megaEvolve();
+      else s.gmaxEvolve();
+    } else if (s.canMega() && Math.random() < 0.4 + 0.5 * this.d) s.megaEvolve();
+    else if (s.canGmax() && Math.random() < 0.4 + 0.5 * this.d) s.gmaxEvolve();
+    if (s.canZ() && s.canAct() && Math.random() < 0.3 + 0.45 * this.d) s.useZ();
     const bestEff = c => Math.max(...c.moves.map(sl => moveEffect(c, MOVES[sl.id], f.mon, s.g)));
     const threatTo = c => Math.max(...f.mon.moves.map(sl => moveEffect(f.mon, MOVES[sl.id], c, s.g)));
     if (s.switchCd <= 0 && alive.length) {
@@ -594,7 +776,8 @@ class AI {
       const mv = MOVES[sl.id];
       const eff = moveEffect(m, mv, f.mon, s.g);
       if (eff === 0) return;
-      const stab = m.sp.types.includes(mv.type) ? 1.5 : 1;
+      const atkT = plateAttackType(m, mv, f.mon) || mv.type;
+      const stab = (m.sp.types.includes(atkT) || m.ability === 'legendplate') && atkT !== 'none' ? 1.5 : 1;
       const atk = mv.cat === 'phy' ? m.stats.atk : m.stats.spa;
       const sc = mv.power * eff * stab * atk * rand(0.6, 1.4) * (this.d > 0.5 ? 1 : rand(0.5, 1.5));
       if (sc > bs) { bs = sc; best = i; }
@@ -683,25 +866,33 @@ class Game {
     if (opts.ffa) {
       const roster = opts.playerTeam.map(k => makeMon(k, opts.playerLevel || 50));
       this.megaOK = roster.map(() => true);
+      this.gmaxOK = roster.map(() => true);
+      this.zOK = roster.map(() => true);
       roster.forEach((m, i) => this.sides.push(new Side(this, i, [m], i !== 0 || !!opts.watch, opts.diff)));
       allMons = roster;
     } else {
       const pTeam = opts.playerTeam.map(k => makeMon(k, opts.playerLevel || 50));
       const cTeam = opts.cpuTeam.map(k => makeMon(k, opts.cpuLevel || 50, { randomize: opts.randomCpu, hpMult: opts.hpMult }));
       this.megaOK = [true, true];
+      this.gmaxOK = [true, true];
+      this.zOK = [true, true];
       this.sides.push(new Side(this, 0, pTeam, !!opts.watch, opts.diff));
       this.sides.push(new Side(this, 1, cTeam, true, opts.diff));
       allMons = [...pTeam, ...cTeam];
     }
-    for (const m of allMons) {
-      const ids = [m.sp.id, ...(m.baseSp.megas || []).map(f => f.id)];
-      if (m.baseSp.primal) ids.push(m.baseSp.primal.id);
-      if (m.baseSp.crown) ids.push(m.baseSp.crown.id);
-      for (const id of ids) {
-        setSprite(new Image(), id, false);
-        setSprite(new Image(), id, true);
+    const warm = () => {
+      for (const m of allMons) {
+        const ids = [m.sp.id, ...(m.baseSp.megas || []).map(f => f.id)];
+        if (m.baseSp.primal) ids.push(m.baseSp.primal.id);
+        if (m.baseSp.crown) ids.push(m.baseSp.crown.id);
+        for (const id of ids) {
+          if (!spriteReady.has('f' + id)) setSprite(new Image(), id, false);
+          if (!spriteReady.has('b' + id)) setSprite(new Image(), id, true);
+        }
       }
-    }
+    };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(warm);
+    else setTimeout(warm, 600);
 
     this.projectiles = [];
     this.effects = [];
@@ -723,6 +914,7 @@ class Game {
     this.winner = -1;
     this.ended = false;
     this.weather = null;
+    this.terrain = null;
     this.sandT = 2;
     this.dreamT = 2;
     this.banner('READY...', true);
@@ -776,6 +968,7 @@ class Game {
     } else if (this.state === 'fight') {
       this.time += dt;
       this.updateWeather(dt);
+      this.updateTerrain(dt);
       this.updateBadDreams(dt);
       if (this.time >= TIME_LIMIT) this.timeUp();
     } else if (this.state === 'end') {
@@ -801,19 +994,23 @@ class Game {
   readPlayerInput(p) {
     if (this.state === 'fight') {
       let x = 0, y = 0;
-      const k = Input.down;
-      if (k.has('KeyW') || k.has('ArrowUp')) y -= 1;
-      if (k.has('KeyS') || k.has('ArrowDown')) y += 1;
-      if (k.has('KeyA') || k.has('ArrowLeft')) x -= 1;
-      if (k.has('KeyD') || k.has('ArrowRight')) x += 1;
+      if (Controls.down('left')) x -= 1;
+      if (Controls.down('right')) x += 1;
+      if (Controls.down('up')) y -= 1;
+      if (Controls.down('down')) y += 1;
+      if (typeof TouchStick !== 'undefined') { x += TouchStick.x; y += TouchStick.y; }
+      const len = Math.hypot(x, y);
+      if (len > 1) { x /= len; y /= len; }
       p.input.x = x; p.input.y = y;
-      MOVE_KEYS.forEach((codes, i) => { if (codes.some(c => k.has(c))) p.useMove(i); });
-      if (DODGE_KEYS.some(c => Input.pressed.has(c))) p.dodge([x, y]);
+      for (let i = 0; i < 4; i++) if (Controls.down('move' + (i + 1)) || (typeof TouchHold !== 'undefined' && TouchHold[i])) p.useMove(i);
+      if (Controls.pressed('dodge')) p.dodge([x, y]);
       if (!this.ffa) {
-        if (Input.pressed.has('KeyQ')) p.requestSwitch();
-        if (Input.pressed.has('KeyE')) p.requestSwitch(undefined, -1);
+        if (Controls.pressed('switchNext')) p.requestSwitch();
+        if (Controls.pressed('switchPrev')) p.requestSwitch(undefined, -1);
       }
-      if (Input.pressed.has('KeyR')) p.megaEvolve();
+      if (Controls.pressed('mega')) p.megaEvolve();
+      if (Controls.pressed('gmax')) p.gmaxEvolve();
+      if (Controls.pressed('zmove')) p.useZ();
     } else {
       p.input.x = p.input.y = 0;
     }
@@ -927,6 +1124,10 @@ class Game {
       case 'drizzle': this.setWeather('rain', s); break;
       case 'sandstream': this.setWeather('sand', s); break;
       case 'snowwarning': this.setWeather('snow', s); break;
+      case 'electricsurge': this.setTerrain('electric', s); break;
+      case 'psychicsurge': this.setTerrain('psychic', s); break;
+      case 'grassysurge': this.setTerrain('grassy', s); break;
+      case 'mistysurge': this.setTerrain('misty', s); break;
       case 'primordialsea': this.setWeather('rain', s, true); break;
       case 'desolateland': this.setWeather('sun', s, true); break;
       case 'airlock': case 'deltastream':
@@ -948,6 +1149,31 @@ class Game {
     const w = WEATHER[type];
     this.weather = { type, t: primal ? 9999 : WEATHER_TIME, primal: !!primal, src: s };
     this.text(W / 2, 150, primal ? w.primalStart : w.start, w.color, 22, 1.8);
+  }
+
+  setTerrain(type, s) {
+    this.abilityPop(s, s.mon.ability);
+    const tr = TERRAIN[type];
+    this.terrain = { type, t: WEATHER_TIME, src: s };
+    this.text(W / 2, 178, tr.start, tr.color, 22, 1.8);
+  }
+
+  terrainNow() {
+    return this.terrain ? this.terrain.type : null;
+  }
+
+  grounded(mon) {
+    return !mon.sp.types.includes('flying') && mon.ability !== 'levitate';
+  }
+
+  updateTerrain(dt) {
+    if (!this.terrain) return;
+    this.terrain.t -= dt;
+    if (this.terrain.t <= 0) {
+      const ko = TERRAIN[this.terrain.type].ko;
+      this.text(W / 2, 178, `${ko}${josa(ko, '이', '가')} 사라졌다.`, '#ffffff', 18, 1.4);
+      this.terrain = null;
+    }
   }
 
   weatherNow() {
@@ -1099,23 +1325,54 @@ class Game {
   }
 
   /* ---------------- moves ---------------- */
-  performMove(s, id) {
+  // 씨기관총·물수리검처럼 2~5발. 포켓몬과 같이 2·3발이 흔하고 4·5발은 드물다.
+  shotCount(mv, mon) {
+    if (!mv.rollHits) return (mv.count || 1) + (mon.ability === 'skilllink' && mv.count ? 2 : 0);
+    if (mon.ability === 'skilllink') return 5;
+    if (mon.ability === 'battlebond' && mv.bond) return 3;
+    const r = Math.random() * 8;
+    if (r < 3) return 2;
+    if (r < 6) return 3;
+    if (r < 7) return 4;
+    return 5;
+  }
+
+  applyLegendPlate(s, id) {
+    const mon = s.mon;
+    if (!mon || mon.ability !== 'legendplate') return;
     const mv = MOVES[id];
+    if (!mv || mv.type === 'none') return;
+    const foe = s.foe && s.foe.mon;
+    const t = mv.id === 'judgment' ? (foe ? bestPlateType(foe.sp.types) : (mon.sp.plate || 'normal')) : mv.type;
+    const sprite = ARCEUS_SPRITE[t] || ARCEUS_SPRITE.normal;
+    if (mon.sp.plate === t && String(mon.sp.id) === sprite) return;
+    mon.sp = { ...mon.sp, types: [t], id: sprite, plate: t };
+    s.applySprite();
+    this.text(s.x, s.y - s.spriteH() - 36, TYPES[t].ko, TYPES[t].color, 14, 0.7);
+  }
+
+  performMove(s, id) {
+    this.applyLegendPlate(s, id);
+    const mv = MOVES[id];
+    const showType = (s.mon.ability === 'legendplate' && mv.id === 'judgment' && s.mon.sp.plate) ? s.mon.sp.plate : mv.type;
     const aim = s.aim(mv);
     s.face = aim;
     const seq = ++this.castSeq;
-    this.text(s.x, s.y - s.spriteH() - 16, mv.name, TYPES[mv.type].color, 15, 0.8, true);
+    this.text(s.x, s.y - s.spriteH() - 16, mv.name, TYPES[showType].color, 15, 0.8, true);
 
     switch (mv.kind) {
       case 'proj': {
-        const n = (mv.count || 1) + (s.mon.ability === 'skilllink' && mv.count ? 2 : 0);
+        const n = this.shotCount(mv, s.mon);
+        if (mv.rollHits) this.text(s.x, s.y - s.spriteH() - 34, `${n}발!`, '#fff', 16, 0.7);
         const base = Math.atan2(aim[1], aim[0]);
+        const spread = mv.rollHits ? (mv.spread || 0) * 0.28 : (mv.spread || 0);
         for (let k = 0; k < n; k++) {
-          const a = base + (n > 1 ? (k / (n - 1) - 0.5) * 2 * (mv.spread || 0) : 0);
+          const a = base + (n > 1 ? (k / (n - 1) - 0.5) * 2 * spread : 0);
           const c = Math.cos(a), sn = Math.sin(a);
           this.projectiles.push({
             x: s.x + c * (s.r + 4), y: s.y + sn * (s.r + 4), vx: c * mv.speed, vy: sn * mv.speed,
-            r: mv.r, life: mv.range / mv.speed, mv, owner: s, mon: s.mon, seq, rot: Math.random() * 6, missed: false,
+            r: mv.r, life: mv.range / mv.speed, delay: mv.rollHits ? k * 0.07 : 0,
+            mv, owner: s, mon: s.mon, seq, rot: Math.random() * 6, missed: false,
           });
         }
         Sound.play('proj');
@@ -1209,7 +1466,7 @@ class Game {
       }
       return 'miss';
     }
-    const atkT = attackType(srcMon, mv);
+    const atkT = plateAttackType(srcMon, mv, def) || attackType(srcMon, mv);
     if (this.weather && this.weather.primal) {
       const wn = this.weatherNow();
       if (wn === 'rain' && atkT === 'fire') {
@@ -1306,6 +1563,10 @@ class Game {
     const pinch = { blaze: 'fire', torrent: 'water', overgrow: 'grass' }[aAb];
     if (pinch === atkT && srcMon.hp <= srcMon.maxHp / 3) power *= 1.5;
     if (srcMon.flashFire && atkT === 'fire') power *= 1.5;
+    if (mv.first && src.speed() > t.speed()) {
+      power *= 2;
+      this.text(src.x, src.y - src.spriteH() - 28, '선공!', '#7ecbff', 14, 0.55);
+    }
     if (mv.facade && srcMon.status) power *= 2;
     if (mv.hex && def.status) power *= 2;
     power *= skinBoost;
@@ -1316,12 +1577,13 @@ class Game {
     if (aAb === 'reckless' && (mv.recoil || mv.crash)) power *= 1.2;
     if (aAb === 'sandforce' && this.weatherNow() === 'sand' && ['rock', 'ground', 'steel'].includes(atkT)) power *= 1.3;
     if (aAb === 'hadronengine' && !phy && atkT === 'electric') power *= 1.3;
-    if (aAb === 'royalknight' && (atkT === 'steel' || atkT === 'ice')) power *= 1.3;
+    if (aAb === 'royalknight' && (atkT === 'fire' || atkT === 'ice')) power *= 1.3;
+    if (aAb === 'battlebond' && mv.bond) power *= 20 / 15;
     if (this.sides.some(sd => this.targetable(sd) && sd.switching <= 0 && ((sd.mon.ability === 'fairyaura' && atkT === 'fairy') || (sd.mon.ability === 'darkaura' && atkT === 'dark')))) power *= 1.33;
     const sheer = aAb === 'sheerforce' && (mv.status || mv.flinch);
     if (sheer) power *= 1.3;
 
-    const stabbed = atkT !== 'none' && (srcMon.sp.types.includes(atkT) || aAb === 'protean' || aAb === 'libero');
+    const stabbed = atkT !== 'none' && (srcMon.sp.types.includes(atkT) || aAb === 'protean' || aAb === 'libero' || aAb === 'legendplate');
     const stab = stabbed ? (aAb === 'adaptability' ? 2 : 1.5) : 1;
     const critStage = (aAb === 'superluck' ? 1 : 0) + (mv.critBoost ? 1 : 0);
     const crit = mv.alwaysCrit || (dAb !== 'shellarmor' && Math.random() < [1 / 16, 1 / 8, 1 / 2][Math.min(2, critStage)]);
@@ -1331,14 +1593,23 @@ class Game {
     const w = this.weatherNow();
     if (w === 'sun') mod *= atkT === 'fire' ? 1.5 : atkT === 'water' ? 0.5 : 1;
     if (w === 'rain') mod *= atkT === 'water' ? 1.5 : atkT === 'fire' ? 0.5 : 1;
+    const tr = this.terrainNow();
+    if (tr && this.grounded(srcMon)) {
+      if (tr === 'electric' && atkT === 'electric') mod *= 1.3;
+      if (tr === 'psychic' && atkT === 'psychic') mod *= 1.3;
+      if (tr === 'grassy' && atkT === 'grass') mod *= 1.3;
+    }
+    if (tr === 'misty' && atkT === 'dragon' && this.grounded(def)) mod *= 0.5;
     if (dAb === 'thickfat' && (atkT === 'fire' || atkT === 'ice')) mod *= 0.5;
     if ((dAb === 'multiscale' || dAb === 'shadowshield') && def.hp === def.maxHp) { mod *= 0.5; this.abilityPop(t, dAb); }
     if ((dAb === 'filter' || dAb === 'solidrock' || dAb === 'prismarmor') && eff > 1) { mod *= 0.75; this.abilityPop(t, dAb); }
+    if (aAb === 'neuroforce' && eff > 1) { mod *= 1.25; this.abilityPop(src, 'neuroforce'); }
     if (dAb === 'auraguard' && contact) { mod *= 0.5; this.abilityPop(t, 'auraguard'); }
 
     const base = (2 * srcMon.level / 5 + 2) * power * atkStat / dfs / 50 + 2;
     let dmg = Math.max(1, Math.round(base * stab * eff * (crit ? 1.5 : 1) * burn * mod * rand(0.85, 1) * DMG_SCALE));
     if (mv.halfHp) dmg = Math.max(1, Math.floor(def.hp / 2));
+    if (mv.hpRatio) dmg = Math.max(1, Math.floor(def.hp * mv.hpRatio));
     if (mv.levelDmg) dmg = srcMon.level;
     if (dAb === 'sturdy' && def.hp === def.maxHp && dmg >= def.hp) {
       dmg = def.hp - 1;
@@ -1423,9 +1694,13 @@ class Game {
     const m = t.mon;
     if (m.status || m.fainted) return;
     if (STATUS_IMMUNE[st].some(ty => m.sp.types.includes(ty))) return;
-    if (m.ability === 'multitype' || (st === 'frz' && m.ability === 'insomnia')) { this.abilityPop(t, m.ability); return; }
+    if (m.ability === 'multitype' || m.ability === 'legendplate' || (st === 'frz' && m.ability === 'insomnia')) { this.abilityPop(t, m.ability); return; }
     if (st === 'par' && m.ability === 'limber') { this.abilityPop(t, 'limber'); return; }
     if (st === 'brn' && m.ability === 'thermalexchange') { this.abilityPop(t, 'thermalexchange'); return; }
+    if (this.terrainNow() === 'misty' && this.grounded(m)) {
+      this.text(t.x, t.y - t.spriteH() - 46, '미스트필드!', TERRAIN.misty.color, 15, 0.8);
+      return;
+    }
     m.status = st;
     m.statusT = STATUS_TIME[st];
     t.dotT = 1;
@@ -1519,6 +1794,7 @@ class Game {
   /* ---------------- world objects ---------------- */
   updateProjectiles(dt) {
     for (const p of this.projectiles) {
+      if (p.delay > 0) { p.delay -= dt; continue; }
       const home = p.owner.foe;
       if (p.mv.homing && home && this.targetable(home) && !p.missed) {
         const want = Math.atan2(home.y - p.y, home.x - p.x), cur = Math.atan2(p.vy, p.vx);
@@ -1753,9 +2029,13 @@ class Game {
       }
       if (s.mon.fainted && s.faintT <= 0) continue;
       const a = s.faintT > 0 ? s.faintT / 1.4 : 1;
-      c.globalAlpha = 0.28 * a;
+      const model = s.mon.sp.id >= 90000;
+      const air = model ? clamp(-this.spriteBob(s) / 22, 0, 0.45) : 0;
+      const rx = s.r * (model ? 1.7 : 1.2) * (1 - air);
+      const ry = s.r * (model ? 0.46 : 0.42) * (1 - air);
+      c.globalAlpha = (model ? 0.4 : 0.28) * a * (1 - air);
       c.fillStyle = '#000';
-      c.beginPath(); c.ellipse(s.x, s.y + 2, s.r * 1.2, s.r * 0.42, 0, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.ellipse(s.x, s.y + (model ? 6 : 2), rx, ry, 0, 0, Math.PI * 2); c.fill();
       c.globalAlpha = 0.8 * a;
       c.strokeStyle = s.mon.boss ? '#ffd24a' : (s.idx === 0 ? '#4fb3ff' : '#ff5a5a');
       c.lineWidth = s.mon.boss ? 3 : 2;
@@ -1770,6 +2050,12 @@ class Game {
     el.style[prop] = val;
   }
 
+  spriteBob(s) {
+    const model = s.mon.sp.id >= 90000;
+    if (s.moving) return -Math.abs(Math.sin(this.clock * (model ? 9 : 12))) * (model ? 8 : 4);
+    return Math.sin(this.clock * (model ? 2.1 : 2.5) + s.idx) * (model ? 3.2 : 1.2);
+  }
+
   renderSprite(s) {
     const wantBack = s.face[1] < -0.55 && s.faintT <= 0 && s.elB.naturalWidth > 0;
     s.back = wantBack;
@@ -1780,7 +2066,8 @@ class Game {
     this.styleIf(el, 'visibility', 'visible');
     const sc = s.spriteScale();
     const w = nw * sc, h = el.naturalHeight * sc;
-    const bob = s.moving ? -Math.abs(Math.sin(this.clock * 12)) * 4 : Math.sin(this.clock * 2.5 + s.idx) * 1.2;
+    const model = s.mon.sp.id >= 90000;
+    const bob = this.spriteBob(s);
     let scale = 1, alpha = 1, dy = 0;
     if (s.switching > 0) {
       scale = s.swapped ? 1 - s.switching / 0.3 : (s.switching - 0.3) / 0.3;
@@ -1794,7 +2081,17 @@ class Game {
     if (s.dodgeT > 0) alpha *= 0.45;
     else if (s.iframes > 0) alpha *= 0.75;
     const flip = s.back ? (s.face[0] < -0.1 ? -1 : 1) : (s.face[0] > 0.1 ? -1 : 1);
-    const transform = `translate(${(s.x - w / 2).toFixed(1)}px, ${(s.y - h + 6 + bob + dy).toFixed(1)}px) scale(${flip * scale}, ${scale})`;
+    const px = (s.x - w / 2).toFixed(1);
+    const py = (s.y - h + 6 + bob + dy).toFixed(1);
+    let transform = `translate(${px}px, ${py}px) scale(${flip * scale}, ${scale})`;
+    if (model && s.faintT <= 0) {
+      const hop = s.moving ? Math.abs(Math.sin(this.clock * 9)) : 0;
+      const sx = scale * (1 + hop * 0.05);
+      const sy = scale * (1 - hop * 0.07);
+      const yaw = (s.back ? -10 : 12) + s.face[1] * 10;
+      const sway = Math.sin(this.clock * 2.1 + s.idx) * (s.moving ? 2.4 : 1.1);
+      transform = `translate(${px}px, ${py}px) perspective(720px) rotateX(10deg) rotateY(${yaw.toFixed(2)}deg) rotateZ(${sway.toFixed(2)}deg) scale(${flip * sx}, ${sy})`;
+    }
     this.styleIf(el, 'transform', transform);
     this.styleIf(el, 'opacity', String(alpha));
     this.styleIf(el, 'zIndex', String(Math.round(s.y)));
@@ -1804,6 +2101,7 @@ class Game {
     else if (s.mon.status === 'par' && Math.sin(this.clock * 30) > 0.6) filter = 'brightness(1.6) sepia(1) saturate(4)';
     else if (s.mon.status === 'brn') filter = 'drop-shadow(0 0 4px #ff6a00)';
     else if (s.mon.status === 'psn') filter = 'drop-shadow(0 0 4px #b040ff)';
+    if (model && s.flash <= 0) filter = (filter ? filter + ' ' : '') + 'drop-shadow(0 18px 7px rgba(0,0,0,.55))';
     this.styleIf(el, 'filter', filter);
   }
 
@@ -1937,6 +2235,7 @@ class Game {
   }
 
   drawProjectile(c, p) {
+    if (p.delay > 0) return;
     const col = TYPES[p.mv.type].color, x = p.x, y = p.y - LIFT, r = p.r;
     c.save();
     c.globalAlpha = 0.25;

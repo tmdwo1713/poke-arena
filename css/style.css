@@ -8,6 +8,8 @@ html, body {
   font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
   color: #eef3ff;
   user-select: none;
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 #stage {
@@ -19,6 +21,19 @@ html, body {
   transform-origin: center center;
   overflow: hidden;
   background: #0d1424;
+}
+#playfield { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; }
+body.mobile-layout #stage {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  height: auto;
+  transform: none !important;
+}
+body.mobile-layout #playfield {
+  left: 50%;
+  top: 50%;
+  transform-origin: center center;
 }
 
 #world, #world canvas, #sprites {
@@ -47,6 +62,15 @@ img.smooth,
 .tp img.smooth,
 .trainer .mons img.smooth,
 .tm img.smooth { image-rendering: auto; }
+img.model { filter: drop-shadow(0 8px 3px rgba(0,0,0,.45)); }
+.menu-mons img.model {
+  transform-origin: 50% 100%;
+  animation: modelStand 2.6s ease-in-out infinite;
+}
+@keyframes modelStand {
+  0%, 100% { transform: scale(1.6) perspective(520px) rotateX(12deg) translateY(0); }
+  50% { transform: scale(1.6) perspective(520px) rotateX(12deg) translateY(-6px); }
+}
 
 .hidden { display: none !important; }
 
@@ -104,15 +128,16 @@ button:disabled { opacity: .45; cursor: default; }
   text-shadow: 0 3px 0 #2a5bbf, 0 6px 18px rgba(0,0,0,.5);
 }
 .logo-main {
-  font-size: 96px; font-weight: 900; line-height: 1; letter-spacing: -2px;
+  font-size: 80px; font-weight: 900; line-height: 1; letter-spacing: -2px;
   background: linear-gradient(180deg, #ffffff, #9fd2ff);
   -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 5px 0 #2a5bbf) drop-shadow(0 10px 22px rgba(0,0,0,.55));
 }
 .logo-sub { margin-top: 10px; color: #c6d6f5; font-size: 18px; letter-spacing: 4px; }
-.menu-mons { height: 130px; display: flex; justify-content: center; align-items: flex-end; gap: 110px; margin: 6px 0 16px; }
+.menu-mons { height: 114px; display: flex; justify-content: center; align-items: flex-end; gap: 110px; margin: 2px 0 8px; }
 .menu-mons img { image-rendering: pixelated; transform: scale(1.6); transform-origin: bottom center; filter: drop-shadow(0 6px 4px rgba(0,0,0,.35)); }
-.menu-btns { display: flex; flex-direction: column; gap: 10px; width: 300px; margin: 0 auto; }
+.menu-btns { display: flex; flex-direction: column; gap: 8px; width: 300px; margin: 0 auto; }
+.menu-btns .big { padding: 10px 28px; }
 .mute-btn { position: absolute; right: 24px; bottom: 20px; }
 
 /* ---------------- 팀 편성 ---------------- */
@@ -164,7 +189,9 @@ button:disabled { opacity: .45; cursor: default; }
 .dd-move .reroll { float: right; color: #c9d6f2; }
 .dd-move:hover { background: rgba(255,255,255,.1); }
 #abMega.ready { border-color: #e2b0ff; background: linear-gradient(180deg, rgba(180,90,255,.35), rgba(80,40,120,.4)); }
-#abMega.off { opacity: .45; }
+#abGmax.ready { border-color: #ffb4b4; background: linear-gradient(180deg, rgba(255,80,80,.35), rgba(120,30,30,.4)); }
+#abZ.ready { border-color: #ffe14d; background: linear-gradient(180deg, rgba(255,210,60,.35), rgba(120,90,20,.4)); }
+#abMega.off, #abGmax.off, #abZ.off { opacity: .45; }
 .dex.is-legend { background: linear-gradient(180deg, rgba(255,215,90,.10), rgba(255,255,255,.03)); }
 .dd-name { font-size: 18px; font-weight: 900; }
 .dd-no { color: #8ea3cc; font-size: 12px; }
@@ -242,10 +269,19 @@ button:disabled { opacity: .45; cursor: default; }
 .trainer .mons img { image-rendering: pixelated; max-height: 44px; max-width: 54px; }
 
 /* ---------------- 조작법 ---------------- */
-.help-panel { width: 720px; }
+.help-panel { width: 720px; max-height: 680px; overflow: auto; }
+.help-actions { margin-top: 0; justify-content: flex-start; }
 .keys { width: 100%; border-collapse: collapse; margin-top: 8px; }
 .keys td { padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,.06); }
-.keys td:first-child { width: 330px; }
+.keys td:first-child { width: 340px; }
+.keys-panel { width: 980px; }
+.key-groups { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 8px 22px; }
+.key-groups h3 { margin: 0 0 8px; }
+.key-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.key-label { width: 76px; flex: none; font-size: 13px; color: #d5e2ff; }
+.keycap { flex: 1; min-width: 0; padding: 6px 4px; font-size: 13px; }
+.keycap.listen { border-color: #ffcb3d; color: #2a1600; background: linear-gradient(180deg, #ffd65e, #f7a935); }
+.keycap.empty { opacity: .55; }
 kbd {
   display: inline-block; min-width: 26px; padding: 2px 7px; margin: 0 2px; text-align: center; border-radius: 6px;
   background: #e8eefc; color: #1a2340; font-weight: 800; font-family: inherit; font-size: 13px; box-shadow: 0 2px 0 #8d9bbd;
@@ -328,10 +364,17 @@ kbd {
 
 #abilBar { display: flex; gap: 6px; }
 .abil {
-  position: relative; width: 70px; height: 64px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; font-size: 12px;
+  position: relative; width: 64px; height: 64px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; font-size: 11px;
+  pointer-events: auto; cursor: pointer;
 }
-.abil b { font-size: 10px; background: rgba(0,0,0,.4); padding: 1px 5px; border-radius: 4px; margin-bottom: 4px; }
+.abil b { font-size: 9px; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: rgba(0,0,0,.4); padding: 1px 5px; border-radius: 4px; margin-bottom: 4px; }
+.abil span { max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot .limit-tag, .limit-tag {
+  font-size: 10px; font-weight: 900; color: #3a1208; background: linear-gradient(180deg, #ffd0a8, #f08850);
+  border-radius: 5px; padding: 1px 5px; vertical-align: middle;
+}
+.slot .limit-tag { position: absolute; bottom: 4px; left: 5px; font-size: 9px; }
 
 #banner {
   position: absolute; left: 0; right: 0; top: 200px; text-align: center; font-size: 30px; font-weight: 900; opacity: 0;
@@ -397,3 +440,85 @@ kbd {
 
 body.mode-ffa #cardP, body.mode-ffa #cardC, body.mode-ffa #abSwitch { display: none; }
 body.mode-ffa #teamBar { grid-template-columns: repeat(6, 46px); width: auto; }
+
+/* ---------------- 터치 조작 ---------------- */
+#touchpad { display: none; touch-action: none; z-index: 40; }
+#stick {
+  position: relative; width: 132px; height: 132px; border-radius: 50%;
+  background: rgba(8, 14, 28, .45); border: 2px solid rgba(255,255,255,.28);
+  box-shadow: inset 0 0 0 36px rgba(255,255,255,.05);
+}
+#knob {
+  position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px;
+  border-radius: 50%; background: rgba(255, 255, 255, .82);
+}
+#touchMoves, #touchActs, #touchTeam { display: none; }
+body.touch-ui.in-battle.touch-overlay #touchpad {
+  display: block; position: fixed;
+  left: calc(var(--field-left) + 18px);
+  top: calc(var(--field-top) + var(--field-h) - 248px);
+  width: 132px; height: 132px;
+}
+body.touch-ui.in-battle.touch-dock #touchpad {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-areas: "stick moves" "acts acts" "team team";
+  align-items: stretch;
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: max(176px, var(--letter));
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  gap: 8px;
+  box-sizing: border-box;
+  background: linear-gradient(0deg, rgba(8,12,26,.96), rgba(8,12,26,.88));
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+body.touch-dock #stick { grid-area: stick; width: 104px; height: 104px; align-self: center; justify-self: center; }
+body.touch-dock #bottom { visibility: hidden; }
+body.touch-dock #touchMoves {
+  grid-area: moves;
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+  gap: 6px; min-width: 0; height: auto;
+}
+body.touch-dock #touchMoves button, body.touch-dock #touchActs button, body.touch-dock #touchTeam button {
+  min-height: 40px; min-width: 0; padding: 4px 6px; font-size: 13px;
+}
+body.touch-dock #touchMoves button { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; overflow: hidden; }
+body.touch-dock #touchMoves b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+body.touch-dock #touchMoves small { color: #c9d6f2; font-size: 11px; }
+body.touch-dock #touchSide { display: contents; }
+body.touch-dock #touchActs { grid-area: acts; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+body.touch-dock #touchTeam { grid-area: team; display: flex; gap: 6px; }
+body.touch-dock #touchTeam:empty { display: none; }
+body.touch-dock #touchTeam button { width: 42px; min-height: 36px; padding: 4px; }
+body.touch-dock #touchTeam button.on { border-color: #4fb3ff; }
+body.mode-ffa #touchActs [data-act="switch"], body.mode-ffa #touchTeam { display: none; }
+
+/* ---------------- 좁은 화면 ---------------- */
+.panel, .team-panel, .pre-panel, .ch-panel, .help-panel, .keys-panel, .small-panel {
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+}
+@media (max-width: 860px) {
+  .screen { align-items: safe center; overflow: auto; padding: 12px 0 16px; }
+  .logo-top { font-size: 18px; letter-spacing: 4px; }
+  .logo-main { font-size: 42px; }
+  .logo-sub { font-size: 14px; letter-spacing: 2px; }
+  .menu-mons { gap: 2px; height: 76px; overflow: hidden; }
+  .menu-mons img, .menu-mons img.model {
+    transform: none; animation: none; height: 68px; width: auto; max-width: 60px; object-fit: contain;
+  }
+  .menu-btns { width: min(300px, 88vw); }
+  .mute-btn { right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .team-panel { flex-direction: column; width: calc(100vw - 12px); height: auto; min-height: calc(100dvh - 16px); gap: 12px; padding: 12px; }
+  .ts-left { width: auto; }
+  #dexGrid { grid-template-columns: repeat(3, 1fr); min-height: 240px; }
+  #arenaCards, #ffaArenaCards, #bossArenaCards { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .pre-row { grid-template-columns: 1fr; gap: 12px; }
+  .trainer { grid-template-columns: 32px 1fr auto; }
+  .trainer .mons { display: none; }
+  .key-groups { grid-template-columns: 1fr; }
+  .keys td:first-child { width: auto; }
+  .row { flex-wrap: wrap; }
+  .help-panel, .keys-panel, .pre-panel, .ch-panel { width: calc(100vw - 12px); }
+}
