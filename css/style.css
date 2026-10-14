@@ -202,6 +202,7 @@ button:disabled { opacity: .45; cursor: default; }
 .dd-move { background: rgba(255,255,255,.05); border-left: 4px solid var(--tc); border-radius: 6px; padding: 3px 8px; font-size: 11px; }
 .dd-move b { display: block; font-size: 12px; }
 .dd-move span { color: #a8b8d8; }
+.dd-move .fx { display: block; margin-top: 2px; color: #d5e2ff; font-size: 10px; line-height: 1.35; white-space: normal; }
 
 .ts-filter { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
 #dexSearch {
@@ -212,6 +213,7 @@ button:disabled { opacity: .45; cursor: default; }
 #typeChips { display: flex; flex-wrap: wrap; gap: 5px; }
 .chip { padding: 3px 9px; border-radius: 20px; font-size: 12px; cursor: pointer; opacity: .55; border: 1px solid transparent; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.4); }
 .chip.on { opacity: 1; border-color: #fff; }
+.chip.form { font-weight: 700; }
 #dexGrid {
   flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding-right: 6px; align-content: start;
 }

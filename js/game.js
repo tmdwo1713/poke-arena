@@ -4,6 +4,7 @@ const W = 1280, H = 720;
 const SPRITE_SCALE = 1.6;
 const DMG_SCALE = 0.38;
 const TIME_LIMIT = 300;
+const GIANT_TIME = 30;
 const WEATHER_TIME = 25;
 const MOLD_BREAKERS = ['moldbreaker', 'turboblaze', 'teravolt'];
 const NO_TRACE = ['trace', 'wonderguard', 'disguise', 'multitype', 'legendplate', 'imposter'];
@@ -28,7 +29,7 @@ const LIFT = 22; // 지면 좌표 기준, 몸통/투사체를 그릴 높이
 const DEFAULT_KB = { proj: 220, beam: 320, melee: 300, dash: 360, nova: 320, target: 260 };
 const STATUS_TIME = { brn: 6, psn: 8, par: 5, frz: 1.3 };
 const STATUS_IMMUNE = { brn: ['fire'], par: ['electric'], frz: ['ice'], psn: ['poison', 'steel'] };
-const KIND_KO = { proj: '투사체', beam: '광선', melee: '근접', dash: '돌진', nova: '광역', target: '낙하' };
+const KIND_KO = { proj: '투사체', beam: '광선', melee: '근접', dash: '돌진', nova: '광역', target: '낙하', guard: '방어', self: '강화' };
 
 const KEY_LABELS = {
   Space: 'Space', Escape: 'Esc', Enter: 'Enter', Tab: 'Tab',
@@ -203,7 +204,7 @@ function makeMon(entry, level, opts = {}) {
     boss: hpMult > 1, phase1: false, phase2: false,
     moves: ids.map(id => ({ id, pp: MOVES[id].pp, maxPp: MOVES[id].pp, cd: 0 })),
     status: null, statusT: 0, fainted: false,
-    ability: sp.ability, atkMod: 1, defMod: 1, speMod: 1, spaMod: 1,
+    ability: sp.ability, atkMod: 1, defMod: 1, speMod: 1, spaMod: 1, spdMod: 1,
     flashFire: false, disguiseBroken: false,
     megaIdx: n.mega || 0, megaed: false, transformed: false, limit: n.limit || '',
   };
@@ -214,6 +215,7 @@ function attackType(srcMon, mv) {
     if (srcMon.ability === 'pixilate') return 'fairy';
     if (srcMon.ability === 'aerilate') return 'flying';
     if (srcMon.ability === 'dragonize') return 'dragon';
+    if (srcMon.ability === 'refrigerate') return 'ice';
   }
   return mv.type;
 }
@@ -236,8 +238,9 @@ function abilityBlock(defAbility, mv, eff, atkType) {
 function typeEffFor(srcMon, mv, defMon, game) {
   const atk = plateAttackType(srcMon, mv, defMon) || attackType(srcMon, mv);
   if (atk === 'none') return 1;
-  let types = defMon.sp.types.slice();
+  let types = defMon.powderT > 0 ? ['psychic'] : defMon.sp.types.slice();
   if (srcMon.ability === 'scrappy' && (atk === 'normal' || atk === 'fighting')) types = types.filter(t => t !== 'ghost');
+  if ((defMon.grounded || mv.smackDown) && atk === 'ground') types = types.filter(t => t !== 'flying');
   let eff = typeEffect(atk, types);
   if (mv.freezeDry && types.includes('water')) eff *= 4;
   if (game && game.hasDeltaStream() && types.includes('flying') && eff > 1 && ['electric', 'ice', 'rock'].includes(atk)) eff /= 2;
@@ -248,7 +251,9 @@ function typeEffFor(srcMon, mv, defMon, game) {
 function moveEffect(srcMon, mv, defMon, game) {
   const atk = attackType(srcMon, mv);
   const eff = typeEffFor(srcMon, mv, defMon, game);
-  if (!MOLD_BREAKERS.includes(srcMon.ability) && abilityBlock(defMon.ability, mv, eff, atk)) return 0;
+  let ab = defMon.ability;
+  if (ab === 'levitate' && atk === 'ground' && (defMon.grounded || mv.smackDown)) ab = '';
+  if (!MOLD_BREAKERS.includes(srcMon.ability) && abilityBlock(ab, mv, eff, atk)) return 0;
   return eff;
 }
 
@@ -285,6 +290,10 @@ class Side {
     this.moving = false;
     this.ko = 0; this.dealt = 0;
     this.fieldT = 0;
+    this.outT = 0;
+    this.counterT = 0;
+    this.counterMul = 2;
+    this.tarT = 0;
     this.popT = {};
 
     this.elF = this.makeImg();
@@ -307,25 +316,33 @@ class Side {
   get foe() { return this.g.nearestFoe(this); }
   get el() { return this.back ? this.elB : this.elF; }
   aliveCount() { return this.team.filter(m => !m.fainted).length; }
-  spriteScale() { return SPRITE_SCALE * (this.mon && this.mon.boss ? 1.75 : 1); }
+  spriteScale() {
+    const boss = this.mon && this.mon.boss;
+    const dmax = this.mon && this.mon.dmax && !boss;
+    return SPRITE_SCALE * (boss ? 1.75 : 1) * (dmax ? 1.65 : 1);
+  }
   spriteH() { return (this.el.naturalHeight || 40) * this.spriteScale(); }
 
   applySprite() {
     const id = this.mon.sp.id;
     for (const [el, back] of [[this.elF, false], [this.elB, true]]) {
-      el.onload = () => {
+      const sizeEl = () => {
+        if (!el.naturalWidth) return;
         const sc = this.spriteScale();
         el.style.width = el.naturalWidth * sc + 'px';
         el.style.height = el.naturalHeight * sc + 'px';
         if (!back && this.mon.sp.id === id) {
-          const key = id + (this.mon.boss ? ':b' : '');
-          radiusCache[key] = clamp(el.naturalWidth * sc * 0.27, 16, this.mon.boss ? 58 : 40);
+          const key = id + (this.mon.boss ? ':b' : '') + (this.mon.dmax ? ':d' : '');
+          radiusCache[key] = clamp(el.naturalWidth * sc * 0.27, 16, this.mon.boss ? 58 : this.mon.dmax ? 52 : 40);
           this.r = radiusCache[key];
         }
       };
+      el.onload = sizeEl;
       setSprite(el, id, back);
+      if (el.complete && el.naturalWidth) sizeEl();
     }
-    this.r = radiusCache[id] || 22;
+    const rkey = id + (this.mon.boss ? ':b' : '') + (this.mon.dmax ? ':d' : '');
+    this.r = radiusCache[rkey] || radiusCache[id] || 22;
   }
 
   speed() {
@@ -361,9 +378,10 @@ class Side {
       const f = this.foe;
       const pressure = f && this.g.targetable(f) && f.mon.ability === 'pressure';
       slot.pp = Math.max(0, slot.pp - (pressure ? 2 : 1));
-      slot.cd = MOVES[id].cd;
+      slot.cd = battleMove(this.mon, id).cd;
     }
     this.gcd = 0.25;
+    this.acted = true;
     this.g.performMove(this, id);
     return true;
   }
@@ -409,6 +427,10 @@ class Side {
     }
     if (to === undefined || to === this.active || !this.team[to] || this.team[to].fainted) return false;
     const f = this.foe;
+    if (this.trapT > 0 && !this.mon.sp.types.includes('ghost')) {
+      this.g.text(this.x, this.y - this.spriteH() - 20, '빠져나갈 수 없다!', '#735797', 15, 1);
+      return false;
+    }
     if (f && this.g.targetable(f) && f.switching <= 0 && f.mon.ability === 'shadowtag' && !this.mon.sp.types.includes('ghost')) {
       this.g.abilityPop(f, 'shadowtag');
       this.g.text(this.x, this.y - this.spriteH() - 20, '교체할 수 없다!', '#c9a0ff', 15, 1);
@@ -433,10 +455,10 @@ class Side {
   }
   canBurst(kind) {
     if (this.cpuLimited(kind)) return false;
-    if (this.mon.transformed || this.mon.megaed || this.mon.gmax) return false;
+    if (this.mon.transformed || this.mon.megaed || this.mon.gmax || this.mon.dmax || this.mon.complete) return false;
     if (this.faintT > 0 || this.mon.fainted || this.switching > 0) return false;
     if (kind === 'mega') return this.g.megaOK[this.idx] && megaForms(this.mon.baseSp).length > 0;
-    if (kind === 'gmax') return this.g.gmaxOK[this.idx] && !!gmaxFormOf(this.mon.baseSp);
+    if (kind === 'gmax') return this.g.gmaxOK[this.idx];
     return false;
   }
 
@@ -445,6 +467,7 @@ class Side {
 
   burst(kind) {
     if (!this.canBurst(kind)) return false;
+    if (kind === 'gmax' && !gmaxFormOf(this.mon.baseSp)) return this.dynamax();
     const form = kind === 'gmax'
       ? gmaxFormOf(this.mon.baseSp)
       : megaForms(this.mon.baseSp)[this.mon.megaIdx || 0];
@@ -458,6 +481,7 @@ class Side {
       this.mon.maxHp *= 2;
       this.mon.hp = Math.max(1, this.mon.hp * 2);
       this.mon.gmax = true;
+      this.mon.giantT = GIANT_TIME;
       this.g.gmaxOK[this.idx] = false;
     } else {
       this.g.megaOK[this.idx] = false;
@@ -482,6 +506,43 @@ class Side {
     Sound.play('super');
     this.g.onEntry(this);
     return true;
+  }
+
+  dynamax() {
+    this.mon.maxHp *= 2;
+    this.mon.hp *= 2;
+    this.mon.dmax = true;
+    this.mon.megaed = true;
+    this.mon.giantT = GIANT_TIME;
+    this.g.gmaxOK[this.idx] = false;
+    this.applySprite();
+    this.g.burst(this.x, this.y - LIFT, '#ff4b6a', 26, 300);
+    this.g.effects.push({ type: 'ring', x: this.x, y: this.y, r: 110, color: '#ff4b6a', life: 0.55, max: 0.55 });
+    this.g.banner(`${this.mon.sp.name} 다이맥스!`, true);
+    Sound.play('super');
+    return true;
+  }
+
+  endGiant() {
+    const m = this.mon;
+    if (!m || (!m.dmax && !m.gmax)) return;
+    const wasGmax = !!m.gmax;
+    const ratio = m.maxHp > 0 ? m.hp / m.maxHp : 0;
+    if (wasGmax) {
+      const base = m.baseSp;
+      m.sp = base.primal || base.crown || base;
+      m.ability = m.sp.ability;
+      m.stats = calcStats(m.sp, m.level);
+      if (base.fixedHp) m.stats.hp = base.fixedHp;
+    }
+    const baseMax = Math.max(1, Math.round(m.stats.hp * (m.hpMult || 1)));
+    m.maxHp = baseMax;
+    m.hp = m.fainted ? 0 : Math.max(1, Math.min(m.maxHp, Math.round(baseMax * ratio)));
+    m.dmax = false;
+    m.gmax = false;
+    m.giantT = 0;
+    this.applySprite();
+    if (!m.fainted) this.g.banner(wasGmax ? '거다이맥스 종료!' : '다이맥스 종료!');
   }
 
   useZ() {
@@ -514,13 +575,21 @@ class Side {
     prev.defMod = 1;
     prev.speMod = 1;
     prev.spaMod = 1;
+    prev.spdMod = 1;
+    prev.critMod = 0;
     prev.flashFire = false;
+    prev.powderT = 0;
+    prev.grounded = false;
+    this.acted = false;
     this.active = idx;
     this.cast = null;
     this.dash = null;
     this.stun = 0;
     this.kx = this.ky = 0;
     this.iframes = 0.5;
+    this.outT = 0;
+    this.counterT = 0;
+    this.tarT = 0;
     this.back = false;
     this.applySprite();
     this.g.effects.push({ type: 'pokeball', x: this.x, y: this.y, life: 0.45, max: 0.45 });
@@ -569,6 +638,42 @@ class Side {
         }
       }
       if (m.statusT <= 0) m.status = null;
+    }
+    if (this.trapT > 0) this.trapT -= dt;
+    if (this.veilT > 0) this.veilT -= dt;
+    if (this.counterT > 0) this.counterT -= dt;
+    if (this.tarT > 0) this.tarT -= dt;
+    if (this.mon.powderT > 0) this.mon.powderT -= dt;
+    if ((m.dmax || m.gmax) && g.state === 'fight') {
+      m.giantT -= dt;
+      if (m.giantT <= 0) this.endGiant();
+    }
+    if (m.hp > 0 && m.hp <= m.maxHp / 2 && m.ability === 'powerconstruct' && !m.complete) g.checkPowerConstruct(this, m.maxHp);
+    this.outT += dt;
+    if (this.confuseT > 0) {
+      this.confuseT -= dt;
+      this.confuseTick = (this.confuseTick || 0) - dt;
+      if (this.confuseTick <= 0) {
+        this.confuseTick = 0.9;
+        this.stun = Math.max(this.stun, 0.35);
+        g.text(this.x, this.y - this.spriteH() - 20, '혼란!', '#f95587', 14, 0.6);
+      }
+    }
+    if (this.yawnT > 0) {
+      this.yawnT -= dt;
+      if (this.yawnT <= 0) {
+        this.stun = Math.max(this.stun, 2);
+        g.text(this.x, this.y - this.spriteH() - 20, '잠들었다!', '#9aa4c7', 16, 1);
+      }
+    }
+    const hz = g.gmaxHazard;
+    if (hz && hz.owner !== this.idx && !m.sp.types.includes(hz.type) && this.dodgeT <= 0) {
+      this.gmaxDot = (this.gmaxDot || 0) - dt;
+      if (this.gmaxDot <= 0) {
+        this.gmaxDot = 2;
+        g.damageSelf(this, Math.max(1, Math.round(m.maxHp / 6)), TYPES[hz.type].color);
+        if (m.fainted) return;
+      }
     }
 
     this.fieldT += dt;
@@ -751,8 +856,8 @@ class AI {
     } else if (s.canMega() && Math.random() < 0.4 + 0.5 * this.d) s.megaEvolve();
     else if (s.canGmax() && Math.random() < 0.4 + 0.5 * this.d) s.gmaxEvolve();
     if (s.canZ() && s.canAct() && Math.random() < 0.3 + 0.45 * this.d) s.useZ();
-    const bestEff = c => Math.max(...c.moves.map(sl => moveEffect(c, MOVES[sl.id], f.mon, s.g)));
-    const threatTo = c => Math.max(...f.mon.moves.map(sl => moveEffect(f.mon, MOVES[sl.id], c, s.g)));
+    const bestEff = c => Math.max(...c.moves.map(sl => moveEffect(c, battleMove(c, sl.id), f.mon, s.g)));
+    const threatTo = c => Math.max(...f.mon.moves.map(sl => moveEffect(f.mon, battleMove(f.mon, sl.id), c, s.g)));
     if (s.switchCd <= 0 && alive.length) {
       const myBest = bestEff(m);
       const threat = threatTo(m);
@@ -773,7 +878,7 @@ class AI {
     let best = -1, bs = 0;
     m.moves.forEach((sl, i) => {
       if (sl.pp <= 0 || sl.cd > 0) return;
-      const mv = MOVES[sl.id];
+      const mv = battleMove(m, sl.id);
       const eff = moveEffect(m, mv, f.mon, s.g);
       if (eff === 0) return;
       const atkT = plateAttackType(m, mv, f.mon) || mv.type;
@@ -784,7 +889,7 @@ class AI {
     });
     if (best < 0 && m.moves.every(sl => sl.pp <= 0)) best = 0;
     this.intent = best;
-    const mv = best >= 0 ? MOVES[m.moves[best].pp > 0 ? m.moves[best].id : 'struggle'] : null;
+    const mv = best >= 0 ? battleMove(m, m.moves[best].pp > 0 ? m.moves[best].id : 'struggle') : null;
     this.pref = mv ? AI.idealRange(mv) : 280;
     this.patience = 2.5;
   }
@@ -832,7 +937,7 @@ class AI {
 
     if (this.intent >= 0) {
       const sl = s.mon.moves[this.intent];
-      const mv = MOVES[sl.pp > 0 ? sl.id : 'struggle'];
+      const mv = battleMove(s.mon, sl.pp > 0 ? sl.id : 'struggle');
       this.patience -= dt;
       if (this.inRange(mv, d, f) && s.canAct()) {
         if (s.useMove(this.intent)) { this.intent = -1; this.think = 0.15 + (1 - this.d) * 0.4; }
@@ -970,6 +1075,10 @@ class Game {
       this.updateWeather(dt);
       this.updateTerrain(dt);
       this.updateBadDreams(dt);
+      if (this.gmaxHazard) {
+        this.gmaxHazard.t -= dt;
+        if (this.gmaxHazard.t <= 0) this.gmaxHazard = null;
+      }
       if (this.time >= TIME_LIMIT) this.timeUp();
     } else if (this.state === 'end') {
       this.stateT -= dt;
@@ -1021,7 +1130,7 @@ class Game {
     const now = this.clock;
     if (s.popT[ab] && now - s.popT[ab] < 0.8) return;
     s.popT[ab] = now;
-    this.text(s.x, s.y - s.spriteH() - 40, `《${label || ABILITIES[ab].name}》`, '#e9d8ff', 15, 1.2, true);
+    this.text(s.x, s.y - s.spriteH() - 40, `《${label || (ABILITIES[ab] && ABILITIES[ab].name) || '특성'}》`, '#e9d8ff', 15, 1.2, true);
   }
 
   hasDeltaStream() {
@@ -1043,6 +1152,7 @@ class Game {
     m.defMod = target.defMod;
     m.speMod = target.speMod;
     m.spaMod = target.spaMod;
+    m.spdMod = target.spdMod || 1;
     m.flashFire = target.flashFire;
     m.disguiseBroken = target.disguiseBroken;
     m.moves = target.moves.map(sl => ({ id: sl.id, pp: 5, maxPp: 5, cd: 0 }));
@@ -1143,16 +1253,16 @@ class Game {
     }
   }
 
-  setWeather(type, s, primal) {
+  setWeather(type, s, primal, silent) {
     if (this.weather && this.weather.primal && !primal) return;
-    this.abilityPop(s, s.mon.ability);
+    if (!silent && s) this.abilityPop(s, s.mon.ability);
     const w = WEATHER[type];
     this.weather = { type, t: primal ? 9999 : WEATHER_TIME, primal: !!primal, src: s };
     this.text(W / 2, 150, primal ? w.primalStart : w.start, w.color, 22, 1.8);
   }
 
-  setTerrain(type, s) {
-    this.abilityPop(s, s.mon.ability);
+  setTerrain(type, s, silent) {
+    if (!silent && s) this.abilityPop(s, s.mon.ability);
     const tr = TERRAIN[type];
     this.terrain = { type, t: WEATHER_TIME, src: s };
     this.text(W / 2, 178, tr.start, tr.color, 22, 1.8);
@@ -1163,6 +1273,7 @@ class Game {
   }
 
   grounded(mon) {
+    if (mon.grounded) return true;
     return !mon.sp.types.includes('flying') && mon.ability !== 'levitate';
   }
 
@@ -1353,8 +1464,8 @@ class Game {
 
   performMove(s, id) {
     this.applyLegendPlate(s, id);
-    const mv = MOVES[id];
-    const showType = (s.mon.ability === 'legendplate' && mv.id === 'judgment' && s.mon.sp.plate) ? s.mon.sp.plate : mv.type;
+    const mv = battleMove(s.mon, id);
+    const showType = (s.mon.ability === 'legendplate' && mv.id === 'judgment' && !mv.max && s.mon.sp.plate) ? s.mon.sp.plate : mv.type;
     const aim = s.aim(mv);
     s.face = aim;
     const seq = ++this.castSeq;
@@ -1379,7 +1490,7 @@ class Game {
         break;
       }
       case 'beam': {
-        if (id === 'solarbeam' && this.weatherNow() === 'sun') {
+        if (!mv.max && id === 'solarbeam' && this.weatherNow() === 'sun') {
           this.resolveCast(s, { kind: 'beam', mv, aim, seq });
           Sound.play('beam');
           break;
@@ -1394,14 +1505,17 @@ class Game {
       case 'nova':
         s.cast = { kind: 'nova', t: 0.2, max: 0.2, mv, aim, seq, slow: 0 };
         break;
-      case 'dash':
-        s.dash = { t: mv.dist / mv.speed, dir: aim, speed: mv.speed, mv, seq, hit: false, landed: false };
-        if (mv.phase) s.iframes = Math.max(s.iframes, mv.dist / mv.speed);
+      case 'dash': {
+        let dashSpeed = mv.speed;
+        if (mv.terrainDash && this.terrainNow() === mv.terrainDash) dashSpeed *= 1.45;
+        s.dash = { t: mv.dist / dashSpeed, dir: aim, speed: dashSpeed, mv, seq, hit: false, landed: false };
+        if (mv.phase) s.iframes = Math.max(s.iframes, mv.dist / dashSpeed);
         Sound.play('dash');
         break;
+      }
       case 'target': {
         const f = s.foe || s;
-        const sure = id === 'thunder' && this.weatherNow() === 'rain' && f !== s ? f : null;
+        const sure = !mv.max && id === 'thunder' && this.weatherNow() === 'rain' && f !== s ? f : null;
         const delay = mv.statusOnly && s.mon.ability === 'prankster' ? mv.delay * 0.5 : mv.delay;
         let tx = f.x, ty = f.y;
         if (s.ai && !sure) {
@@ -1412,7 +1526,166 @@ class Game {
         Sound.play('target');
         break;
       }
+      case 'guard':
+        if (mv.counter) {
+          s.counterT = mv.guard || 1.15;
+          s.counterMul = mv.counter;
+          this.effects.push({ type: 'ring', x: s.x, y: s.y, r: s.r + 28, color: '#c22e28', life: 0.4, max: 0.4 });
+          this.text(s.x, s.y - s.spriteH() - 24, '카운터!', '#c22e28', 16, 0.8);
+        } else {
+          s.iframes = Math.max(s.iframes, mv.guard || 1.15);
+          this.effects.push({ type: 'ring', x: s.x, y: s.y, r: s.r + 36, color: '#ff4d6a', life: 0.45, max: 0.45 });
+        }
+        Sound.play('dodge');
+        break;
+      case 'self':
+        this.applyBoosts(s.mon, mv.boosts, true, s);
+        if (mv.trapSelf) {
+          s.trapT = Math.max(s.trapT, 10);
+          this.text(s.x, s.y - s.spriteH() - 24, '물러설 수 없다!', '#c22e28', 15, 1);
+        }
+        this.effects.push({ type: 'ring', x: s.x, y: s.y, r: s.r + 30, color: TYPES[mv.type].color, life: 0.4, max: 0.4 });
+        Sound.play('super');
+        break;
     }
+    if (mv.maxEffect) this.applyMaxEffect(s, mv);
+  }
+
+  applyMaxEffect(s, mv) {
+    const e = mv.maxEffect;
+    const up = (key, word) => {
+      s.mon[key] = Math.min(4, (s.mon[key] || 1) * 1.5);
+      this.text(s.x, s.y - s.spriteH() - 34, word, '#ff9aa8', 15, 1);
+    };
+    const down = (key, word) => {
+      const foe = s.foe;
+      if (!foe || !this.targetable(foe)) return;
+      foe.mon[key] = Math.max(0.4, (foe.mon[key] || 1) / 1.5);
+      this.text(foe.x, foe.y - foe.spriteH() - 34, word, '#9fc4ff', 15, 1);
+    };
+    if (e === 'sun') this.setWeather('sun', s, false, true);
+    else if (e === 'rain') this.setWeather('rain', s, false, true);
+    else if (e === 'sand') this.setWeather('sand', s, false, true);
+    else if (e === 'snow') this.setWeather('snow', s, false, true);
+    else if (e === 'electric' || e === 'psychic' || e === 'grassy' || e === 'misty') this.setTerrain(e, s, true);
+    else if (e === 'atk') up('atkMod', '공격이 올랐다!');
+    else if (e === 'def') up('defMod', '방어가 올랐다!');
+    else if (e === 'spa') up('spaMod', '특수공격이 올랐다!');
+    else if (e === 'spe') up('speMod', '스피드가 올랐다!');
+    else if (e === 'spd') up('spdMod', '특수방어가 올랐다!');
+    else if (e === 'atkdown') down('atkMod', '공격이 떨어졌다!');
+    else if (e === 'defdown') down('defMod', '방어가 떨어졌다!');
+    else if (e === 'spadown') down('spaMod', '특수공격이 떨어졌다!');
+    else if (e === 'spddown') down('spdMod', '특수방어가 떨어졌다!');
+    else if (e === 'spedown') down('speMod', '스피드가 떨어졌다!');
+    else if (e === 'crit') {
+      s.mon.critMod = Math.min(2, (s.mon.critMod || 0) + 1);
+      this.text(s.x, s.y - s.spriteH() - 34, '급소율이 올랐다!', '#ff7a7a', 15, 1);
+    } else if (e === 'heal') {
+      const heal = Math.max(1, Math.round(s.mon.maxHp / 6));
+      s.mon.hp = Math.min(s.mon.maxHp, s.mon.hp + heal);
+      this.text(s.x, s.y - s.spriteH() - 34, '+' + heal, '#7dff8a', 18, 0.9);
+    } else if (e === 'veil') {
+      s.veilT = 12;
+      this.text(s.x, s.y - s.spriteH() - 34, '오로라베일!', '#96d9d6', 15, 1.1);
+    } else if (e === 'trap') {
+      const foe = s.foe;
+      if (foe && this.targetable(foe)) {
+        foe.trapT = 8;
+        this.text(foe.x, foe.y - foe.spriteH() - 34, '빠져나갈 수 없다!', '#735797', 15, 1.1);
+      }
+    } else if (e === 'confuse') {
+      const foe = s.foe;
+      if (foe && this.targetable(foe)) {
+        foe.confuseT = 4;
+        this.text(foe.x, foe.y - foe.spriteH() - 34, '혼란에 빠졌다!', '#f95587', 15, 1.1);
+      }
+    } else if (e === 'yawn') {
+      const foe = s.foe;
+      if (foe && this.targetable(foe)) {
+        foe.yawnT = 2.2;
+        this.text(foe.x, foe.y - foe.spriteH() - 34, '졸음이 쏟아진다!', '#9aa4c7', 15, 1.1);
+      }
+    } else if (e === 'hazard') {
+      this.gmaxHazard = { type: mv.type, t: 8, owner: s.idx };
+      this.text(W / 2, 178, '거다이맥스의 여파!', TYPES[mv.type].color, 22, 1.4);
+    } else if (e === 'clear') {
+      this.terrain = null;
+      for (const sd of this.sides) if (sd !== s) sd.veilT = 0;
+      this.text(W / 2, 178, '필드가 걷혔다!', '#a98ff3', 22, 1.4);
+    } else if (e === 'befuddle' || e === 'stunshock' || e === 'psn') {
+      const foe = s.foe;
+      if (foe && this.targetable(foe)) {
+        const pool = e === 'befuddle' ? ['psn', 'par', 'frz'] : e === 'stunshock' ? ['psn', 'par'] : ['psn'];
+        this.applyStatus(foe, pool[Math.floor(Math.random() * pool.length)], s);
+      }
+    } else if (e === 'cure') {
+      const heal = Math.max(1, Math.round(s.mon.maxHp / 6));
+      s.mon.hp = Math.min(s.mon.maxHp, s.mon.hp + heal);
+      s.mon.status = null;
+      this.text(s.x, s.y - s.spriteH() - 34, '몸이 개운해졌다!', '#7dff8a', 15, 1);
+    } else if (e === 'pp') {
+      const foe = s.foe;
+      if (foe && this.targetable(foe)) {
+        for (const sl of foe.mon.moves) sl.pp = Math.max(0, sl.pp - 2);
+        this.text(foe.x, foe.y - foe.spriteH() - 34, 'PP가 줄었다!', '#9fc4ff', 15, 1);
+      }
+    }
+  }
+
+  applyMoveExtras(src, srcMon, t, mv, sheer) {
+    if (sheer) return;
+    if (mv.drop && t && t.mon && t.mon.hp > 0) this.applyBoosts(t.mon, mv.drop, false, t);
+    if (mv.dropSelf && src && srcMon && !srcMon.fainted) this.applyBoosts(srcMon, mv.dropSelf, false, src);
+    if (mv.tar && t) {
+      t.tarT = 8;
+      this.text(t.x, t.y - t.spriteH() - 46, '불꽃에 약해졌다!', '#f08030', 14, 1);
+    }
+    if (mv.boostFoe && t && t.mon && t.mon.hp > 0) this.applyBoosts(t.mon, mv.boostFoe, true, t);
+    if (mv.powder && t && t.mon) {
+      t.mon.powderT = 8;
+      this.text(t.x, t.y - t.spriteH() - 46, '에스퍼 타입이 됐다!', '#f95587', 14, 1);
+    }
+    if (mv.invert && t && t.mon) {
+      for (const key of ['atkMod', 'defMod', 'spaMod', 'spdMod', 'speMod']) {
+        const v = t.mon[key] || 1;
+        t.mon[key] = Math.min(4, Math.max(0.4, 1 / v));
+      }
+      this.text(t.x, t.y - t.spriteH() - 46, '능력이 뒤집혔다!', '#705848', 14, 1);
+    }
+    if (mv.clearHazard && this.gmaxHazard) {
+      this.gmaxHazard = null;
+      this.text(t.x, t.y - t.spriteH() - 46, '여파가 걷혔다!', '#a040a0', 14, 0.9);
+    }
+    if (mv.payday && src && srcMon) {
+      const slot = srcMon.moves.find(sl => sl.id === (mv.id || 'payday'));
+      if (slot && slot.pp < slot.maxPp) {
+        slot.pp += 1;
+        this.text(src.x, src.y - src.spriteH() - 46, 'PP +1', '#ffd34d', 14, 0.8);
+      }
+    }
+    if (mv.smackDown && t && t.mon && t.mon.hp > 0 && !t.mon.grounded) {
+      t.mon.grounded = true;
+      this.text(t.x, t.y - t.spriteH() - 46, '땅에 내려앉았다!', '#e2bf65', 14, 1);
+    }
+    if (mv.trap && t && t.mon && t.mon.hp > 0 && !t.mon.sp.types.includes('ghost')) {
+      t.trapT = Math.max(t.trapT, 8);
+      this.text(t.x, t.y - t.spriteH() - 46, '빠져나갈 수 없다!', '#735797', 14, 1);
+    }
+    if (mv.suppress && t && t.mon && t.mon.hp > 0 && (t.acted || t.cast) && t.mon.ability && t.mon.ability !== 'suppressed') {
+      t.mon.ability = 'suppressed';
+      this.text(t.x, t.y - t.spriteH() - 46, '특성이 사라졌다!', '#6f35fc', 14, 1);
+    }
+  }
+
+  applyBoosts(mon, stats, up, side) {
+    if (!mon || !stats) return;
+    for (const stat of stats) {
+      const key = stat + 'Mod';
+      mon[key] = up ? Math.min(4, (mon[key] || 1) * 1.5) : Math.max(0.4, (mon[key] || 1) / 1.5);
+    }
+    const word = stats.map(s => STAT_KO[s]).join('·');
+    if (side) this.text(side.x, side.y - side.spriteH() - 28, word + (up ? ' 상승!' : ' 하락!'), up ? '#ff9aa8' : '#9fc4ff', 14, 1);
   }
 
   resolveCast(s, c) {
@@ -1451,6 +1724,14 @@ class Game {
 
   applyHit(src, srcMon, t, mv, dir, seq, sure) {
     if (!this.targetable(t)) return 'none';
+    if (mv.opening && src && src.outT > mv.opening) {
+      this.text(src.x, src.y - src.spriteH() - 16, '타이밍이 늦었다!', '#bbbbbb', 14, 0.8);
+      return 'miss';
+    }
+    if (mv.sucker && !(t.cast || t.dash || t.gcd > 0.05)) {
+      this.text((src || t).x, (src || t).y - ((src || t).spriteH ? (src || t).spriteH() : 40) - 16, '기습이 먹히지 않았다!', '#bbbbbb', 14, 0.8);
+      return 'miss';
+    }
     const def = t.mon;
     const hy = t.y - t.spriteH() - 4;
     const aAb = srcMon.ability;
@@ -1458,7 +1739,7 @@ class Game {
     const dAb = mold ? null : def.ability;
     const contact = mv.kind === 'melee' || mv.kind === 'dash';
     const srcActive = src.mon === srcMon && this.targetable(src);
-    if ((t.iframes > 0 && aAb !== 'noguard' && !sure) || t.switching > 0) {
+    if ((t.iframes > 0 && aAb !== 'noguard' && !sure && !mv.pierceGuard) || t.switching > 0) {
       if (!this.missShown.has(seq)) {
         this.missShown.add(seq);
         this.text(t.x + rand(-10, 10), hy, 'Miss', '#ffffff', 20, 0.7);
@@ -1467,6 +1748,7 @@ class Game {
       return 'miss';
     }
     const atkT = plateAttackType(srcMon, mv, def) || attackType(srcMon, mv);
+    if (dAb === 'levitate' && atkT === 'ground' && (def.grounded || mv.smackDown)) dAb = null;
     if (this.weather && this.weather.primal) {
       const wn = this.weatherNow();
       if (wn === 'rain' && atkT === 'fire') {
@@ -1478,7 +1760,7 @@ class Game {
         return 'immune';
       }
     }
-    const skinBoost = mv.type === 'normal' && (aAb === 'pixilate' || aAb === 'aerilate' || aAb === 'dragonize') ? 1.2 : 1;
+    const skinBoost = mv.type === 'normal' && (aAb === 'pixilate' || aAb === 'aerilate' || aAb === 'dragonize' || aAb === 'refrigerate') ? 1.2 : 1;
     const eff = typeEffFor(srcMon, mv, def, this);
     if (mold && def.ability === 'wonderguard' && eff <= 1 && atkT !== 'none') this.abilityPop(src, aAb);
 
@@ -1524,6 +1806,7 @@ class Game {
         if (dAb === 'goodasgold') this.abilityPop(t, 'goodasgold');
         else this.applyStatus(t, mv.status[0], srcActive ? src : null);
       }
+      this.applyMoveExtras(src, srcMon, t, mv, false);
       return 'hit';
     }
 
@@ -1552,7 +1835,7 @@ class Game {
     if (aAb === 'orichalcumpulse' && phy && !mv.useDef && this.weatherNow() === 'sun') atkStat *= 1.3;
     if (aAb === 'guts' && srcMon.status && phy && !mv.useDef) atkStat *= 1.5;
     if (aAb === 'solarpower' && this.weatherNow() === 'sun' && !phy) atkStat *= 1.5;
-    let dfs = (usesDef ? def.stats.def * defMod * snowIce : def.stats.spd) * sandRock;
+    let dfs = (usesDef ? def.stats.def * defMod * snowIce : def.stats.spd * (aAb === 'unaware' ? 1 : (def.spdMod || 1))) * sandRock;
     const ruined = (mon, ab) => this.sides.some(sd => this.targetable(sd) && sd.switching <= 0 && sd.mon !== mon && sd.mon.ability === ab) ? 0.75 : 1;
     if (!mv.useDef) atkStat *= ruined(srcMon, phy ? 'tabletsofruin' : 'vesselofruin');
     dfs *= ruined(def, usesDef ? 'swordofruin' : 'beadsofruin');
@@ -1560,7 +1843,7 @@ class Game {
 
     let power = mv.power;
     if (aAb === 'technician' && power <= 60) power *= 1.5;
-    const pinch = { blaze: 'fire', torrent: 'water', overgrow: 'grass' }[aAb];
+    const pinch = { blaze: 'fire', torrent: 'water', overgrow: 'grass', swarm: 'bug' }[aAb];
     if (pinch === atkT && srcMon.hp <= srcMon.maxHp / 3) power *= 1.5;
     if (srcMon.flashFire && atkT === 'fire') power *= 1.5;
     if (mv.first && src.speed() > t.speed()) {
@@ -1580,12 +1863,12 @@ class Game {
     if (aAb === 'royalknight' && (atkT === 'fire' || atkT === 'ice')) power *= 1.3;
     if (aAb === 'battlebond' && mv.bond) power *= 20 / 15;
     if (this.sides.some(sd => this.targetable(sd) && sd.switching <= 0 && ((sd.mon.ability === 'fairyaura' && atkT === 'fairy') || (sd.mon.ability === 'darkaura' && atkT === 'dark')))) power *= 1.33;
-    const sheer = aAb === 'sheerforce' && (mv.status || mv.flinch);
+    const sheer = aAb === 'sheerforce' && (mv.status || mv.flinch || mv.drop || mv.dropSelf);
     if (sheer) power *= 1.3;
 
     const stabbed = atkT !== 'none' && (srcMon.sp.types.includes(atkT) || aAb === 'protean' || aAb === 'libero' || aAb === 'legendplate');
     const stab = stabbed ? (aAb === 'adaptability' ? 2 : 1.5) : 1;
-    const critStage = (aAb === 'superluck' ? 1 : 0) + (mv.critBoost ? 1 : 0);
+    const critStage = (aAb === 'superluck' ? 1 : 0) + (mv.critBoost ? 1 : 0) + (srcMon.critMod || 0);
     const crit = mv.alwaysCrit || (dAb !== 'shellarmor' && Math.random() < [1 / 16, 1 / 8, 1 / 2][Math.min(2, critStage)]);
     const burn = phy && srcMon.status === 'brn' && aAb !== 'guts' ? 0.5 : 1;
 
@@ -1600,6 +1883,8 @@ class Game {
       if (tr === 'grassy' && atkT === 'grass') mod *= 1.3;
     }
     if (tr === 'misty' && atkT === 'dragon' && this.grounded(def)) mod *= 0.5;
+    if (t.veilT > 0) mod *= 0.5;
+    if (t.tarT > 0 && atkT === 'fire') mod *= 1.5;
     if (dAb === 'thickfat' && (atkT === 'fire' || atkT === 'ice')) mod *= 0.5;
     if ((dAb === 'multiscale' || dAb === 'shadowshield') && def.hp === def.maxHp) { mod *= 0.5; this.abilityPop(t, dAb); }
     if ((dAb === 'filter' || dAb === 'solidrock' || dAb === 'prismarmor') && eff > 1) { mod *= 0.75; this.abilityPop(t, dAb); }
@@ -1620,7 +1905,14 @@ class Game {
     if (def.ability === 'wonderguard' && atkT !== 'none' && eff > 1) this.abilityPop(t, 'wonderguard', '불가사의부적 관통!');
     if (dAb === 'thermalexchange' && atkT === 'fire') { def.atkMod *= 1.5; this.abilityPop(t, 'thermalexchange'); }
     if (dAb === 'justified' && atkT === 'dark') { def.atkMod *= 1.5; this.abilityPop(t, 'justified'); }
+    const beforeHp = def.hp;
     def.hp = Math.max(0, def.hp - dmg);
+    this.checkPowerConstruct(t, beforeHp);
+    if (dAb === 'berserk' && def.hp > 0 && beforeHp > def.maxHp / 2 && def.hp <= def.maxHp / 2) {
+      def.spaMod = Math.min(4, def.spaMod * 1.5);
+      this.abilityPop(t, 'berserk');
+      this.text(t.x, hy - 20, '특수공격이 올랐다!', '#ff9aa8', 14, 0.9);
+    }
     if (def.hp > 0) this.checkBoss(def);
     src.dealt += dmg;
     t.lastHitBy = src;
@@ -1637,7 +1929,8 @@ class Game {
     const kb = (mv.kb || DEFAULT_KB[mv.kind]) * (eff > 1 ? 1.2 : 1) * (crit ? 1.2 : 1);
     t.kx += dir[0] * kb;
     t.ky += dir[1] * kb;
-    const flinch = !sheer && mv.flinch && def.ability !== 'innerfocus';
+    const flinchRoll = mv.flinch === true ? 1 : (typeof mv.flinch === 'number' ? mv.flinch : 0);
+    const flinch = !sheer && flinchRoll > 0 && Math.random() < flinchRoll && def.ability !== 'innerfocus';
     t.stun = Math.max(t.stun, flinch ? 0.45 : 0.15);
     if (flinch && t.cast) t.cast = null;
     if (flinch && def.ability === 'steadfast') { def.speMod *= 1.5; this.abilityPop(t, 'steadfast'); }
@@ -1652,6 +1945,16 @@ class Game {
       } else if (!def.status) this.applyStatus(t, mv.status[0], srcActive ? src : null);
     }
 
+    if (t.counterT > 0 && mv.cat === 'phy' && !mv.counter && srcActive && def.hp > 0 && !srcMon.fainted) {
+      const back = Math.max(1, Math.round(dmg * (t.counterMul || 2)));
+      t.counterT = 0;
+      srcMon.hp = Math.max(0, srcMon.hp - back);
+      if (src) this.checkPowerConstruct(src, srcMon.hp + back);
+      src.flash = 0.12;
+      this.text(src.x, src.y - src.spriteH() - 20, '카운터! ' + back, '#c22e28', 18, 1);
+      if (srcMon.hp <= 0) this.faint(src);
+    }
+    this.applyMoveExtras(src, srcMon, t, mv, sheer);
     if (mv.drain && srcActive) {
       const heal = Math.max(1, Math.round(dmg * mv.drain));
       srcMon.hp = Math.min(srcMon.maxHp, srcMon.hp + heal);
@@ -1665,7 +1968,14 @@ class Game {
         this.text(src.x, src.y - src.spriteH() - 24, `${MOVES[mv.id].name} 봉인!`, '#c9a0ff', 14, 1.1);
       }
     }
-    if (def.hp <= 0) this.faint(t);
+    if (def.hp <= 0) {
+      this.faint(t);
+      if (mv.onko && srcActive && srcMon && !srcMon.fainted) {
+        const key = mv.onko + 'Mod';
+        srcMon[key] = Math.min(4, (srcMon[key] || 1) * 2);
+        this.text(src.x, src.y - src.spriteH() - 28, STAT_KO[mv.onko] + '이 크게 올랐다!', '#ff7a7a', 15, 1);
+      }
+    }
     if (mv.recoil && srcActive) {
       this.damageSelf(src, Math.max(1, Math.round(dmg * mv.recoil)), '#ff9b9b');
     }
@@ -1681,6 +1991,10 @@ class Game {
       if (def.ability === 'flamebody' && Math.random() < 0.3 && !srcMon.status) {
         this.abilityPop(t, 'flamebody');
         this.applyStatus(src, 'brn');
+      }
+      if (def.ability === 'poisonpoint' && Math.random() < 0.3 && !srcMon.status) {
+        this.abilityPop(t, 'poisonpoint');
+        this.applyStatus(src, 'psn');
       }
     }
     if (aAb === 'parentalbond' && !mv._bond && !mv.multiHit && def.hp > 0 && srcActive) {
@@ -1717,10 +2031,36 @@ class Game {
     const m = s.mon;
     if (m.fainted) return;
     if (m.ability === 'magicguard') { this.abilityPop(s, 'magicguard'); return; }
+    const before = m.hp;
     m.hp = Math.max(0, m.hp - dmg);
+    this.checkPowerConstruct(s, before);
     s.flash = 0.08;
     this.text(s.x + rand(-10, 10), s.y - s.spriteH() - 4, String(dmg), color || '#ffffff', 17, 0.8);
     if (m.hp <= 0) this.faint(s);
+  }
+
+  checkPowerConstruct(s, beforeHp) {
+    const m = s.mon;
+    const form = m.baseSp && m.baseSp.completeForm;
+    if (!form || m.ability !== 'powerconstruct' || m.complete || m.gmax || m.dmax || m.fainted) return;
+    if (m.sp && m.sp.mega && !m.sp.gmax) return;
+    const half = m.maxHp / 2;
+    if (!(beforeHp > half && m.hp <= half)) return;
+    const oldMax = m.maxHp;
+    m.sp = Object.assign({}, m.baseSp, form, { megas: null, complete: true, key: m.baseSp.key + '-complete' });
+    m.ability = form.ability || 'powerconstruct';
+    m.stats = calcStats(m.sp, m.level);
+    const newMax = Math.max(1, Math.round(m.stats.hp * (m.hpMult || 1)));
+    const diff = newMax - oldMax;
+    m.maxHp = newMax;
+    m.hp = Math.min(newMax, Math.max(1, m.hp + diff));
+    m.complete = true;
+    s.applySprite();
+    this.burst(s.x, s.y - LIFT, '#7ac74c', 26, 280);
+    this.effects.push({ type: 'ring', x: s.x, y: s.y, r: 100, color: '#7ac74c', life: 0.55, max: 0.55 });
+    this.abilityPop(s, 'powerconstruct');
+    this.banner(`${m.sp.name}!`, true);
+    Sound.play('super');
   }
 
   faint(t) {
@@ -1730,6 +2070,9 @@ class Game {
     m.hp = 0;
     m.status = null;
     t.faintT = 1.4;
+    t.trapT = 0;
+    t.confuseT = 0;
+    t.yawnT = 0;
     t.cast = null;
     t.dash = null;
     t.dodgeT = 0;
@@ -1737,11 +2080,21 @@ class Game {
     if (t.lastHitBy && t.lastHitBy !== t) {
       t.lastHitBy.ko++;
       if (t.lastHitBy.mon && !t.lastHitBy.mon.fainted && t.lastHitBy.mon.ability === 'moxie') {
-        t.lastHitBy.mon.atkMod *= 1.5;
+        t.lastHitBy.mon.atkMod = Math.min(4, t.lastHitBy.mon.atkMod * 1.5);
         this.abilityPop(t.lastHitBy, 'moxie');
+      }
+      if (t.lastHitBy.mon && !t.lastHitBy.mon.fainted && t.lastHitBy.mon.ability === 'beastboost') {
+        const km = t.lastHitBy.mon;
+        const order = [['atk', km.stats.atk], ['def', km.stats.def], ['spa', km.stats.spa], ['spd', km.stats.spd], ['spe', km.stats.spe]];
+        let best = order[0];
+        for (const pair of order) if (pair[1] > best[1]) best = pair;
+        km[best[0] + 'Mod'] = Math.min(4, (km[best[0] + 'Mod'] || 1) * 1.5);
+        this.abilityPop(t.lastHitBy, 'beastboost');
+        this.text(t.lastHitBy.x, t.lastHitBy.y - t.lastHitBy.spriteH() - 20, STAT_KO[best[0]] + '이 올랐다!', '#ff9aa8', 14, 0.9);
       }
     }
     this.text(t.x, t.y - t.spriteH() - 24, `${m.sp.name} 쓰러졌다!`, '#ffffff', 19, 1.3);
+    if (m.dmax || m.gmax) t.endGiant();
     this.shake = Math.max(this.shake, 10);
     Sound.play('faint');
     if (this.ffa) {

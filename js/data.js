@@ -99,8 +99,8 @@ const STATUS = {
 */
 const MOVES = {
   // 노말
-  quickattack:  { name: '전광석화',     type: 'normal',   cat: 'phy', power: 40,  pp: 30, cd: 1.0, kind: 'dash',  dist: 170, speed: 1100 },
-  extremespeed: { name: '신속',         type: 'normal',   cat: 'phy', power: 80,  pp: 10, cd: 2.2, kind: 'dash',  dist: 260, speed: 1400, sig: true },
+  quickattack:  { name: '전광석화',     type: 'normal',   cat: 'phy', power: 40,  pp: 30, cd: 1.0, kind: 'dash',  dist: 170, speed: 1100, priority: true },
+  extremespeed: { name: '신속',         type: 'normal',   cat: 'phy', power: 80,  pp: 10, cd: 2.2, kind: 'dash',  dist: 260, speed: 1400, priority: true, sig: true },
   bodyslam:     { name: '누르기',       type: 'normal',   cat: 'phy', power: 85,  pp: 15, cd: 2.0, kind: 'dash',  dist: 160, speed: 800, status: ['par', .3], kb: 420 },
   gigaimpact:   { name: '기가임팩트',   type: 'normal',   cat: 'phy', power: 150, pp: 5,  cd: 6.0, kind: 'dash',  dist: 230, speed: 900, kb: 560, selfStun: .8 },
   hyperbeam:    { name: '파괴광선',     type: 'normal',   cat: 'spe', power: 150, pp: 5,  cd: 6.0, kind: 'beam',  charge: .8, width: 34, length: 820, selfStun: .8 },
@@ -108,7 +108,7 @@ const MOVES = {
   takedown:     { name: '돌진',         type: 'normal',   cat: 'phy', power: 90,  pp: 15, cd: 2.0, kind: 'dash',  dist: 190, speed: 900, recoil: .25 },
   doubleedge:   { name: '이판사판태클', type: 'normal',   cat: 'phy', power: 120, pp: 15, cd: 3.0, kind: 'dash',  dist: 240, speed: 1000, recoil: .33 },
   facade:       { name: '객기',         type: 'normal',   cat: 'phy', power: 70,  pp: 20, cd: 1.3, kind: 'melee', reach: 66, arc: 1.5, facade: true },
-  hypervoice:   { name: '하이퍼보이스', type: 'normal',   cat: 'spe', power: 90,  pp: 10, cd: 2.4, kind: 'nova',  radius: 150 },
+  hypervoice:   { name: '하이퍼보이스', type: 'normal',   cat: 'spe', power: 90,  pp: 10, cd: 2.4, kind: 'nova',  radius: 150, sound: true },
   triattack:    { name: '트라이어택',   type: 'normal',   cat: 'spe', power: 80,  pp: 10, cd: 1.7, kind: 'proj',  speed: 600, r: 13, range: 540, status: ['tri', .2], fx: 'star' },
   struggle:     { name: '발버둥',       type: 'none',     cat: 'phy', power: 50,  pp: 0,  cd: 1.0, kind: 'melee', reach: 62, arc: 1.8, recoil: .25 },
   judgment:     { name: '심판의뭉치',   type: 'normal',   cat: 'spe', power: 100, pp: 10, cd: 2.8, kind: 'target', delay: .65, radius: 110, sig: true },
@@ -116,7 +116,7 @@ const MOVES = {
   // 강철
   irontail:     { name: '아이언테일',   type: 'steel',    cat: 'phy', power: 100, pp: 10, cd: 2.2, kind: 'melee', reach: 72, arc: 1.6 },
   flashcannon:  { name: '러스터캐논',   type: 'steel',    cat: 'spe', power: 80,  pp: 10, cd: 1.6, kind: 'proj',  speed: 620, r: 14, range: 520 },
-  bulletpunch:  { name: '불릿펀치',     type: 'steel',    cat: 'phy', power: 40,  pp: 30, cd: 0.8, kind: 'dash',  dist: 140, speed: 1300, punch: true },
+  bulletpunch:  { name: '불릿펀치',     type: 'steel',    cat: 'phy', power: 40,  pp: 30, cd: 0.8, kind: 'dash',  dist: 140, speed: 1300, punch: true, priority: true },
   ironhead:     { name: '아이언헤드',   type: 'steel',    cat: 'phy', power: 80,  pp: 15, cd: 1.8, kind: 'dash',  dist: 170, speed: 950, flinch: true },
   meteormash:   { name: '코멧펀치',     type: 'steel',    cat: 'phy', power: 90,  pp: 10, cd: 1.8, kind: 'melee', reach: 76, arc: 1.4, punch: true },
   heavyslam:    { name: '헤비봄버',     type: 'steel',    cat: 'phy', power: 100, pp: 10, cd: 2.4, kind: 'dash',  dist: 190, speed: 850, kb: 520 },
@@ -127,6 +127,7 @@ const MOVES = {
   // 불꽃
   flamethrower: { name: '화염방사',     type: 'fire',     cat: 'spe', power: 90,  pp: 15, cd: 1.6, kind: 'proj',  speed: 520, r: 14, range: 420, status: ['brn', .1], fx: 'flame' },
   fireblast:    { name: '불대문자',     type: 'fire',     cat: 'spe', power: 110, pp: 5,  cd: 3.5, kind: 'proj',  speed: 460, r: 26, range: 580, status: ['brn', .25], fx: 'flame' },
+  mindblown:    { name: '마인드블로',   type: 'fire',     cat: 'spe', power: 150, pp: 5,  cd: 3.2, kind: 'nova', radius: 170, recoil: .5, sig: true },
   overheat:     { name: '오버히트',     type: 'fire',     cat: 'spe', power: 130, pp: 5,  cd: 4.5, kind: 'proj',  speed: 480, r: 24, range: 560, fx: 'flame' },
   heatwave:     { name: '열풍',         type: 'fire',     cat: 'spe', power: 95,  pp: 10, cd: 2.6, kind: 'nova',  radius: 140, status: ['brn', .1] },
   blazekick:    { name: '블레이즈킥',   type: 'fire',     cat: 'phy', power: 85,  pp: 10, cd: 1.6, kind: 'melee', reach: 72, arc: 1.5, status: ['brn', .1] },
@@ -151,9 +152,10 @@ const MOVES = {
   dragonclaw:   { name: '드래곤크루',   type: 'dragon',   cat: 'phy', power: 80,  pp: 15, cd: 1.3, kind: 'melee', reach: 72, arc: 1.6 },
   dragonrush:   { name: '드래곤다이브', type: 'dragon',   cat: 'phy', power: 100, pp: 10, cd: 2.6, kind: 'dash',  dist: 240, speed: 1000, flinch: true },
   outrage:      { name: '역린',         type: 'dragon',   cat: 'phy', power: 120, pp: 8,  cd: 3.2, kind: 'nova',  radius: 115 },
+  coreenforcer: { name: '코어퍼니셔',   type: 'dragon',   cat: 'spe', power: 100, pp: 10, cd: 2.0, kind: 'beam', charge: .25, width: 36, length: 700, suppress: true, sig: true },
   dragondarts:  { name: '드래곤애로우', type: 'dragon',   cat: 'phy', power: 50,  pp: 10, cd: 1.3, kind: 'proj',  speed: 820, r: 9, range: 540, count: 2, spread: .12, multiHit: true },
   dragonpulse:  { name: '용의파동',     type: 'dragon',   cat: 'spe', power: 85,  pp: 10, cd: 1.6, kind: 'proj',  speed: 600, r: 15, range: 560, pulse: true },
-  dracometeor:  { name: '용성군',       type: 'dragon',   cat: 'spe', power: 130, pp: 5,  cd: 4.5, kind: 'target', delay: .8, radius: 100, fx: 'rock' },
+  dracometeor:  { name: '용성군',       type: 'dragon',   cat: 'spe', power: 130, pp: 5,  cd: 4.5, kind: 'target', delay: .8, radius: 100, fx: 'rock', dropSelf: ['spa'] },
   roaroftime:   { name: '시간의포효',   type: 'dragon',   cat: 'spe', power: 150, pp: 5,  cd: 6.0, kind: 'beam',  charge: .7, width: 46, length: 860, selfStun: .8, sig: true },
   spacialrend:  { name: '공간절단',     type: 'dragon',   cat: 'spe', power: 100, pp: 5,  cd: 2.4, kind: 'target', delay: .45, radius: 72, critBoost: true, sig: true },
 
@@ -163,7 +165,7 @@ const MOVES = {
   scald:        { name: '열탕',         type: 'water',    cat: 'spe', power: 80,  pp: 15, cd: 1.6, kind: 'proj',  speed: 560, r: 14, range: 520, status: ['brn', .3] },
   waterpulse:   { name: '물의파동',     type: 'water',    cat: 'spe', power: 60,  pp: 20, cd: 1.1, kind: 'proj',  speed: 640, r: 13, range: 540, pulse: true },
   waterfall:    { name: '폭포오르기',   type: 'water',    cat: 'phy', power: 80,  pp: 15, cd: 1.8, kind: 'dash',  dist: 200, speed: 950, flinch: true },
-  aquajet:      { name: '아쿠아제트',   type: 'water',    cat: 'phy', power: 40,  pp: 20, cd: 0.8, kind: 'dash',  dist: 170, speed: 1300 },
+  aquajet:      { name: '아쿠아제트',   type: 'water',    cat: 'phy', power: 40,  pp: 20, cd: 0.8, kind: 'dash',  dist: 170, speed: 1300, priority: true },
   liquidation:  { name: '아쿠아브레이크', type: 'water',  cat: 'phy', power: 85,  pp: 10, cd: 1.4, kind: 'melee', reach: 70, arc: 1.6 },
   crabhammer:   { name: '집게햄머',     type: 'water',    cat: 'phy', power: 100, pp: 10, cd: 2.0, kind: 'melee', reach: 66, arc: 1.3, critBoost: true },
   watershuriken:{ name: '물수리검',     type: 'water',    cat: 'spe', power: 30,  pp: 20, cd: 1.0, kind: 'proj',  speed: 820, r: 9, range: 540, count: 3, spread: .16, multiHit: true, rollHits: true, fx: 'star', bond: true, sig: true },
@@ -172,11 +174,11 @@ const MOVES = {
   // 얼음
   icebeam:      { name: '냉동빔',       type: 'ice',      cat: 'spe', power: 90,  pp: 10, cd: 1.8, kind: 'proj',  speed: 700, r: 10, range: 560, status: ['frz', .1] },
   blizzard:     { name: '눈보라',       type: 'ice',      cat: 'spe', power: 110, pp: 5,  cd: 3.5, kind: 'target', delay: .8, radius: 96, status: ['frz', .15] },
-  icywind:      { name: '얼다바람',     type: 'ice',      cat: 'spe', power: 55,  pp: 15, cd: 1.2, kind: 'proj',  speed: 640, r: 10, range: 480, count: 3, spread: .25 },
+  icywind:      { name: '얼다바람',     type: 'ice',      cat: 'spe', power: 55,  pp: 15, cd: 1.2, kind: 'proj',  speed: 640, r: 10, range: 480, count: 3, spread: .25, drop: ['spe'] },
   freezedry:    { name: '프리즈드라이', type: 'ice',      cat: 'spe', power: 70,  pp: 20, cd: 1.5, kind: 'proj',  speed: 700, r: 10, range: 540, status: ['frz', .1], freezeDry: true },
   icefang:      { name: '얼음엄니',     type: 'ice',      cat: 'phy', power: 65,  pp: 15, cd: 1.1, kind: 'melee', reach: 60, arc: 1.4, status: ['frz', .1], bite: true },
   icepunch:     { name: '냉동펀치',     type: 'ice',      cat: 'phy', power: 75,  pp: 15, cd: 1.2, kind: 'melee', reach: 66, arc: 1.4, status: ['frz', .1], punch: true },
-  iceshard:     { name: '얼음뭉치',     type: 'ice',      cat: 'phy', power: 40,  pp: 30, cd: 0.7, kind: 'proj',  speed: 920, r: 8, range: 420 },
+  iceshard:     { name: '얼음뭉치',     type: 'ice',      cat: 'phy', power: 40,  pp: 30, cd: 0.7, kind: 'proj',  speed: 920, r: 8, range: 420, priority: true },
   iciclecrash:  { name: '고드름떨구기', type: 'ice',      cat: 'phy', power: 85,  pp: 10, cd: 2.4, kind: 'target', delay: .55, radius: 60, flinch: true },
 
   // 전기
@@ -212,18 +214,18 @@ const MOVES = {
   shadowball:   { name: '섀도볼',       type: 'ghost',    cat: 'spe', power: 80,  pp: 15, cd: 1.5, kind: 'proj',  speed: 560, r: 16, range: 540, ball: true },
   hex:          { name: '병상첨병',     type: 'ghost',    cat: 'spe', power: 65,  pp: 10, cd: 1.3, kind: 'proj',  speed: 560, r: 14, range: 520, hex: true },
   shadowclaw:   { name: '섀도크루',     type: 'ghost',    cat: 'phy', power: 70,  pp: 15, cd: 1.1, kind: 'melee', reach: 70, arc: 1.6 },
-  shadowsneak:  { name: '야습',         type: 'ghost',    cat: 'phy', power: 40,  pp: 30, cd: 0.9, kind: 'dash',  dist: 190, speed: 1300 },
+  shadowsneak:  { name: '야습',         type: 'ghost',    cat: 'phy', power: 40,  pp: 30, cd: 0.9, kind: 'dash',  dist: 190, speed: 1300, priority: true },
   phantomforce: { name: '고스트다이브', type: 'ghost',    cat: 'phy', power: 90,  pp: 10, cd: 2.6, kind: 'dash',  dist: 260, speed: 900, phase: true },
   poltergeist:  { name: '폴터가이스트', type: 'ghost',    cat: 'phy', power: 110, pp: 5,  cd: 3.0, kind: 'target', delay: .6, radius: 60 },
   shadowforce:  { name: '섀도다이브',   type: 'ghost',    cat: 'phy', power: 120, pp: 5,  cd: 3.5, kind: 'dash',  dist: 290, speed: 900, phase: true, sig: true },
 
   // 악
-  darkpulse:    { name: '악의파동',     type: 'dark',     cat: 'spe', power: 80,  pp: 15, cd: 2.2, kind: 'nova',  radius: 145, flinch: true, pulse: true },
+  darkpulse:    { name: '악의파동',     type: 'dark',     cat: 'spe', power: 80,  pp: 15, cd: 2.2, kind: 'nova',  radius: 145, flinch: true, pulse: true, sound: true },
   nightdaze:    { name: '나이트버스트', type: 'dark',     cat: 'spe', power: 85,  pp: 10, cd: 1.6, kind: 'proj',  speed: 600, r: 15, range: 540 },
   bite:         { name: '물기',         type: 'dark',     cat: 'phy', power: 60,  pp: 25, cd: 1.0, kind: 'melee', reach: 58, arc: 1.4, flinch: true, bite: true },
   crunch:       { name: '깨물어부수기', type: 'dark',     cat: 'phy', power: 80,  pp: 15, cd: 1.4, kind: 'melee', reach: 62, arc: 1.4, bite: true },
   nightslash:   { name: '깜짝베기',     type: 'dark',     cat: 'phy', power: 70,  pp: 15, cd: 1.0, kind: 'melee', reach: 76, arc: 2.0, critBoost: true },
-  suckerpunch:  { name: '기습',         type: 'dark',     cat: 'phy', power: 70,  pp: 5,  cd: 1.2, kind: 'dash',  dist: 170, speed: 1350 },
+  suckerpunch:  { name: '기습',         type: 'dark',     cat: 'phy', power: 70,  pp: 5,  cd: 1.2, kind: 'dash',  dist: 170, speed: 1350, priority: true, sucker: true },
   knockoff:     { name: '탁쳐서떨구기', type: 'dark',     cat: 'phy', power: 75,  pp: 20, cd: 1.4, kind: 'melee', reach: 66, arc: 1.5 },
 
   // 에스퍼
@@ -243,15 +245,15 @@ const MOVES = {
   closecombat:  { name: '인파이트',     type: 'fighting', cat: 'phy', power: 120, pp: 5,  cd: 3.0, kind: 'melee', reach: 72, arc: 1.8 },
   crosschop:    { name: '크로스촙',     type: 'fighting', cat: 'phy', power: 100, pp: 5,  cd: 2.2, kind: 'melee', reach: 72, arc: 1.5, critBoost: true },
   dynamicpunch: { name: '폭발펀치',     type: 'fighting', cat: 'phy', power: 100, pp: 5,  cd: 2.8, kind: 'melee', reach: 66, arc: 1.3, flinch: true, kb: 520, punch: true },
-  highjumpkick: { name: '무릎차기',     type: 'fighting', cat: 'phy', power: 130, pp: 10, cd: 3.0, kind: 'dash',  dist: 220, speed: 1100, crash: .25 },
+  highjumpkick: { name: '무릎차기',     type: 'fighting', cat: 'phy', power: 130, pp: 10, cd: 3.0, kind: 'dash',  dist: 220, speed: 1100, crash: .5 },
   drainpunch:   { name: '드레인펀치',   type: 'fighting', cat: 'phy', power: 75,  pp: 10, cd: 1.6, kind: 'melee', reach: 66, arc: 1.4, drain: .5, punch: true },
-  machpunch:    { name: '마하펀치',     type: 'fighting', cat: 'phy', power: 40,  pp: 30, cd: 0.8, kind: 'dash',  dist: 150, speed: 1300, punch: true },
+  machpunch:    { name: '마하펀치',     type: 'fighting', cat: 'phy', power: 40,  pp: 30, cd: 0.8, kind: 'dash',  dist: 150, speed: 1300, punch: true, priority: true },
   sacredsword:  { name: '성스러운칼',   type: 'fighting', cat: 'phy', power: 90,  pp: 15, cd: 1.6, kind: 'melee', reach: 80, arc: 1.6 },
   bodypress:    { name: '바디프레스',   type: 'fighting', cat: 'phy', power: 80,  pp: 10, cd: 1.8, kind: 'dash',  dist: 180, speed: 900, useDef: true, kb: 420 },
-  superpower:   { name: '엄청난힘',     type: 'fighting', cat: 'phy', power: 120, pp: 5,  cd: 3.0, kind: 'melee', reach: 72, arc: 1.7, kb: 480 },
+  superpower:   { name: '엄청난힘',     type: 'fighting', cat: 'phy', power: 120, pp: 5,  cd: 3.0, kind: 'melee', reach: 72, arc: 1.7, kb: 480, dropSelf: ['atk', 'def'] },
   hammerarm:    { name: '암해머',       type: 'fighting', cat: 'phy', power: 100, pp: 10, cd: 2.2, kind: 'melee', reach: 66, arc: 1.4, punch: true },
   lowkick:      { name: '안다리걸기',   type: 'fighting', cat: 'phy', power: 60,  pp: 20, cd: 1.0, kind: 'melee', reach: 60, arc: 1.8 },
-  aerialace:    { name: '제비반환',     type: 'flying',   cat: 'phy', power: 60,  pp: 20, cd: 1.0, kind: 'dash',  dist: 200, speed: 1400 },
+  aerialace:    { name: '제비반환',     type: 'flying',   cat: 'phy', power: 60,  pp: 20, cd: 1.0, kind: 'dash',  dist: 200, speed: 1400, priority: true },
   aquatail:     { name: '아쿠아테일',   type: 'water',    cat: 'phy', power: 90,  pp: 10, cd: 1.8, kind: 'melee', reach: 76, arc: 1.8 },
   grassknot:    { name: '풀묶기',       type: 'grass',    cat: 'spe', power: 80,  pp: 20, cd: 1.6, kind: 'target', delay: .4, radius: 50 },
   extrasensory: { name: '신통력',       type: 'psychic',  cat: 'spe', power: 90,  pp: 20, cd: 1.8, kind: 'proj',  speed: 620, r: 14, range: 540, flinch: true },
@@ -259,7 +261,10 @@ const MOVES = {
 
   // 땅
   earthquake:   { name: '지진',         type: 'ground',   cat: 'phy', power: 100, pp: 10, cd: 3.0, kind: 'nova',  radius: 175 },
-  bulldoze:     { name: '땅고르기',     type: 'ground',   cat: 'phy', power: 60,  pp: 20, cd: 1.8, kind: 'nova',  radius: 150 },
+  thousandarrows:{ name: '사우전드애로', type: 'ground', cat: 'phy', power: 90, pp: 10, cd: 1.8, kind: 'proj', speed: 720, r: 12, range: 560, smackDown: true, sig: true },
+  thousandwaves:{ name: '사우전드웨이브', type: 'ground', cat: 'phy', power: 90, pp: 10, cd: 2.2, kind: 'nova', radius: 150, trap: true, sig: true },
+  landswrath:   { name: '그라운드포스', type: 'ground',   cat: 'phy', power: 90, pp: 10, cd: 2.4, kind: 'nova', radius: 160, sig: true },
+  bulldoze:     { name: '땅고르기',     type: 'ground',   cat: 'phy', power: 60,  pp: 20, cd: 1.8, kind: 'nova',  radius: 150, drop: ['spe'] },
   drillrun:     { name: '드릴라이너',   type: 'ground',   cat: 'phy', power: 80,  pp: 10, cd: 1.6, kind: 'dash',  dist: 200, speed: 1050, critBoost: true },
   highhorsepower:{ name: '10만마력',    type: 'ground',   cat: 'phy', power: 95,  pp: 10, cd: 2.0, kind: 'dash',  dist: 210, speed: 1000 },
   earthpower:   { name: '대지의힘',     type: 'ground',   cat: 'spe', power: 90,  pp: 10, cd: 2.0, kind: 'target', delay: .5, radius: 65, fx: 'rock' },
@@ -279,7 +284,7 @@ const MOVES = {
   leechlife:    { name: '흡혈',         type: 'bug',      cat: 'phy', power: 80,  pp: 10, cd: 1.5, kind: 'melee', reach: 64, arc: 1.4, drain: .5 },
   megahorn:     { name: '메가혼',       type: 'bug',      cat: 'phy', power: 120, pp: 10, cd: 3.0, kind: 'dash',  dist: 220, speed: 1000 },
   uturn:        { name: '유턴',         type: 'bug',      cat: 'phy', power: 70,  pp: 20, cd: 1.4, kind: 'dash',  dist: 200, speed: 1100, pivot: true },
-  bugbuzz:      { name: '벌레의야단법석', type: 'bug',    cat: 'spe', power: 90,  pp: 10, cd: 2.4, kind: 'nova',  radius: 145 },
+  bugbuzz:      { name: '벌레의야단법석', type: 'bug',    cat: 'spe', power: 90,  pp: 10, cd: 2.4, kind: 'nova',  radius: 145, sound: true },
   signalbeam:   { name: '시그널빔',     type: 'bug',      cat: 'spe', power: 75,  pp: 15, cd: 1.6, kind: 'beam',  charge: .3, width: 24, length: 560 },
 
   // 페어리
@@ -287,27 +292,27 @@ const MOVES = {
   dazzlinggleam:{ name: '매지컬샤인',   type: 'fairy',    cat: 'spe', power: 80,  pp: 10, cd: 2.2, kind: 'nova',  radius: 150 },
   drainingkiss: { name: '드레인키스',   type: 'fairy',    cat: 'spe', power: 50,  pp: 10, cd: 1.2, kind: 'proj',  speed: 520, r: 14, range: 480, drain: .75 },
   playrough:    { name: '치근거리기',   type: 'fairy',    cat: 'phy', power: 90,  pp: 10, cd: 1.6, kind: 'melee', reach: 68, arc: 1.6 },
-  spiritbreak:  { name: '소울브레이크', type: 'fairy',    cat: 'phy', power: 75,  pp: 15, cd: 1.3, kind: 'melee', reach: 68, arc: 1.5 },
+  spiritbreak:  { name: '소울브레이크', type: 'fairy',    cat: 'phy', power: 75,  pp: 15, cd: 1.3, kind: 'melee', reach: 68, arc: 1.5, drop: ['spa'] },
   superfang:    { name: '분노의앞니',   type: 'normal',   cat: 'phy', power: 1,   pp: 10, cd: 2.8, kind: 'melee', reach: 58, arc: 1.4, bite: true, halfHp: true },
   hypnosis:     { name: '최면술',       type: 'psychic',  cat: 'spe', power: 0,   pp: 20, cd: 3.5, kind: 'target', delay: .5, radius: 48, status: ['frz', 1], statusOnly: true },
   iciclespear:  { name: '고드름침',     type: 'ice',      cat: 'phy', power: 25,  pp: 30, cd: 1.4, kind: 'proj',  speed: 780, r: 8, range: 460, count: 5, spread: .4, multiHit: true, rollHits: true },
   bulletseed:   { name: '씨기관총',     type: 'grass',    cat: 'phy', power: 25,  pp: 30, cd: 1.4, kind: 'proj',  speed: 780, r: 8, range: 480, count: 5, spread: .35, multiHit: true, rollHits: true, fx: 'leaf' },
-  rocktomb:     { name: '암석봉인',     type: 'rock',     cat: 'phy', power: 60,  pp: 15, cd: 1.4, kind: 'proj',  speed: 560, r: 14, range: 480, fx: 'rock' },
+  rocktomb:     { name: '암석봉인',     type: 'rock',     cat: 'phy', power: 60,  pp: 15, cd: 1.4, kind: 'proj',  speed: 560, r: 14, range: 480, fx: 'rock', drop: ['spe'] },
   seismictoss:  { name: '지구던지기',   type: 'fighting', cat: 'phy', power: 1,   pp: 20, cd: 1.8, kind: 'melee', reach: 66, arc: 1.5, levelDmg: true },
   voltswitch:   { name: '볼트체인지',   type: 'electric', cat: 'spe', power: 70,  pp: 20, cd: 1.6, kind: 'proj',  speed: 640, r: 12, range: 520, fx: 'bolt' },
   gyroball:     { name: '자이로볼',     type: 'steel',    cat: 'phy', power: 80,  pp: 5,  cd: 2.0, kind: 'dash',  dist: 180, speed: 900, ball: true },
   heatcrash:    { name: '히트스탬프',   type: 'fire',     cat: 'phy', power: 80,  pp: 10, cd: 2.0, kind: 'dash',  dist: 190, speed: 950, kb: 480 },
   spiritshackle:{ name: '그림자꿰매기', type: 'ghost',    cat: 'phy', power: 80,  pp: 10, cd: 1.8, kind: 'proj',  speed: 620, r: 12, range: 520 },
-  grassyglide:  { name: '그래스슬라이더', type: 'grass',  cat: 'phy', power: 70,  pp: 20, cd: 1.2, kind: 'dash',  dist: 200, speed: 1200 },
+  grassyglide:  { name: '그래스슬라이더', type: 'grass',  cat: 'phy', power: 70,  pp: 20, cd: 1.2, kind: 'dash',  dist: 200, speed: 1200, terrainDash: 'grassy', priority: true },
   snipeshot:    { name: '스나이프샷',   type: 'water',    cat: 'spe', power: 80,  pp: 15, cd: 1.6, kind: 'proj',  speed: 780, r: 10, range: 620, critBoost: true },
-  mysticalfire: { name: '매지컬플레임', type: 'fire',     cat: 'spe', power: 75,  pp: 10, cd: 1.5, kind: 'proj',  speed: 560, r: 14, range: 520, fx: 'flame' },
+  mysticalfire: { name: '매지컬플레임', type: 'fire',     cat: 'spe', power: 75,  pp: 10, cd: 1.5, kind: 'proj',  speed: 560, r: 14, range: 520, fx: 'flame', drop: ['spa'] },
   darkestlariat:{ name: 'DD래리어트',   type: 'dark',     cat: 'phy', power: 85,  pp: 10, cd: 1.6, kind: 'melee', reach: 70, arc: 1.6 },
   kowtowcleave: { name: '무릎꿇기베기', type: 'dark',     cat: 'phy', power: 85,  pp: 10, cd: 1.5, kind: 'melee', reach: 76, arc: 1.8, critBoost: true },
-  boomburst:    { name: '폭음파',       type: 'normal',   cat: 'spe', power: 140, pp: 10, cd: 4.0, kind: 'nova',  radius: 170 },
+  boomburst:    { name: '폭음파',       type: 'normal',   cat: 'spe', power: 140, pp: 10, cd: 4.0, kind: 'nova',  radius: 170, sound: true },
   vcreate:      { name: 'V제너레이트',  type: 'fire',     cat: 'phy', power: 180, pp: 5,  cd: 4.5, kind: 'dash',  dist: 240, speed: 1100, recoil: .33, kb: 560, sig: true },
   fusionflare:  { name: '크로스플레임', type: 'fire',     cat: 'spe', power: 100, pp: 5,  cd: 2.2, kind: 'proj',  speed: 560, r: 16, range: 540, fx: 'flame', sig: true },
   fusionbolt:   { name: '크로스썬더',   type: 'electric', cat: 'phy', power: 100, pp: 5,  cd: 2.2, kind: 'dash',  dist: 220, speed: 1050, sig: true },
-  glaciate:     { name: '얼음숨결',     type: 'ice',      cat: 'spe', power: 65,  pp: 10, cd: 1.4, kind: 'proj',  speed: 520, r: 14, range: 480, sig: true },
+  glaciate:     { name: '얼음숨결',     type: 'ice',      cat: 'spe', power: 65,  pp: 10, cd: 1.4, kind: 'proj',  speed: 520, r: 14, range: 480, drop: ['spe'], sig: true },
   sunsteelstrike:{ name: '메테오드라이브', type: 'steel', cat: 'phy', power: 100, pp: 5,  cd: 2.2, kind: 'dash',  dist: 240, speed: 1100, ignoresAbility: true, sig: true },
   moongeistbeam:{ name: '섀도레이',     type: 'ghost',    cat: 'spe', power: 100, pp: 5,  cd: 2.4, kind: 'beam',  charge: .35, width: 28, length: 700, ignoresAbility: true, sig: true },
   prismaticlaser:{ name: '프리즘레이저', type: 'psychic', cat: 'spe', power: 160, pp: 10, cd: 5.5, kind: 'beam',  charge: .7, width: 36, length: 780, selfStun: .6, sig: true },
@@ -339,7 +344,222 @@ const MOVES = {
   menacingmoonrazemaelstrom: { name: '문라이트블래스터', type: 'ghost', cat: 'spe', power: 200, pp: 1, cd: 0, kind: 'beam', charge: .35, width: 48, length: 760, ignoresAbility: true, z: true },
   naturesmadness: { name: '자연의분노', type: 'fairy', cat: 'spe', power: 1, pp: 10, cd: 2.2, kind: 'proj', speed: 620, r: 16, range: 520, halfHp: true, sig: true },
   guardianofalola: { name: '알로라의수호자', type: 'fairy', cat: 'spe', power: 1, pp: 1, cd: 0, kind: 'target', delay: .55, radius: 140, hpRatio: 0.75, z: true },
+
+  accelerock:  { name: '액셀록', type: 'rock', cat: 'phy', power: 40, pp: 20, cd: 0.7, kind: 'dash', dist: 190, speed: 1500, priority: true, sig: true, note: '바위 선공기. 전광석화보다 빠르게 파고든다.' },
+  counter:     { name: '카운터', type: 'fighting', cat: 'sta', power: 0, pp: 20, cd: 3.4, kind: 'guard', guard: 1.15, counter: 2, statusOnly: true, note: '잠시 자세를 잡는다. 그 사이 물리 공격을 받으면 받은 데미지의 2배를 되돌린다.' },
+  payday:      { name: '고양이돈받기', type: 'normal', cat: 'phy', power: 40, pp: 20, cd: 1.1, kind: 'proj', speed: 640, r: 10, range: 480, payday: true, sig: true, note: '동전을 던진다. 맞히면 이 기술의 PP를 1 돌려받는다.' },
+  fakeout:     { name: '속이다', type: 'normal', cat: 'phy', power: 40, pp: 10, cd: 2.4, kind: 'melee', reach: 64, arc: 1.6, flinch: true, priority: true, opening: 6, sig: true, note: '나온 뒤 6초 안에만 맞는다. 맞히면 상대가 움찔해 행동이 끊긴다.' },
+  sleeppowder: { name: '수면가루', type: 'grass', cat: 'sta', power: 0, pp: 15, cd: 3.6, kind: 'target', delay: .55, radius: 52, status: ['frz', 1], statusOnly: true, note: '가루를 뿌린다. 맞으면 얼어붙어 잠시 움직이지 못한다.' },
+  quiverdance: { name: '나비춤', type: 'bug', cat: 'sta', power: 0, pp: 10, cd: 4.2, kind: 'self', boosts: ['spa', 'spd', 'spe'], statusOnly: true, sig: true, note: '춤을 춘다. 특수공격, 특수방어, 스피드가 오른다.' },
+  fellstinger: { name: '마지막일침', type: 'bug', cat: 'phy', power: 50, pp: 15, cd: 1.5, kind: 'dash', dist: 180, speed: 1100, onko: 'atk', sig: true, note: '상대를 쓰러뜨리면 공격이 크게 오른다.' },
+  noretreat:   { name: '배수의진', type: 'fighting', cat: 'sta', power: 0, pp: 5, cd: 5, kind: 'self', boosts: ['atk', 'def', 'spa', 'spd', 'spe'], trapSelf: true, statusOnly: true, sig: true, note: '공격·방어·특공·특방·스피드가 오르지만, 잠시 교체할 수 없다.' },
+  firstimpression: { name: '만나자마자', type: 'bug', cat: 'phy', power: 90, pp: 10, cd: 2.2, kind: 'dash', dist: 230, speed: 1400, priority: true, opening: 6, sig: true, note: '나온 뒤 6초 안에만 맞는다. 타이밍이 지나면 빗나간다.' },
+  gravapple:   { name: '사과산탄', type: 'grass', cat: 'phy', power: 80, pp: 10, cd: 1.6, kind: 'proj', speed: 620, r: 16, range: 500, ball: true, drop: ['def'], sig: true, note: '사과를 던져 맞히면 상대의 방어가 떨어진다.' },
+  appleacid:   { name: '사과산', type: 'grass', cat: 'spe', power: 80, pp: 10, cd: 1.6, kind: 'proj', speed: 560, r: 14, range: 520, drop: ['spd'], sig: true, note: '산을 뿌려 맞히면 상대의 특수방어가 떨어진다.' },
+  overdrive:   { name: '오버드라이브', type: 'electric', cat: 'spe', power: 80, pp: 10, cd: 2.2, kind: 'nova', radius: 150, sound: true, sig: true, note: '큰 소리의 전기 충격을 주위에 퍼뜨린다.' },
+  firelash:    { name: '불꽃채찍', type: 'fire', cat: 'phy', power: 80, pp: 15, cd: 1.5, kind: 'melee', reach: 78, arc: 1.5, drop: ['def'], sig: true, note: '채찍처럼 후려 맞히면 상대의 방어가 떨어진다.' },
+  tarshot:     { name: '타르샷', type: 'rock', cat: 'sta', power: 0, pp: 15, cd: 3.2, kind: 'proj', speed: 640, r: 12, range: 500, statusOnly: true, drop: ['spe'], tar: true, sig: true, note: '상대의 스피드를 떨어뜨리고, 8초 동안 불꽃 기술을 더 강하게 받게 한다.' },
+  decorate:    { name: '데코레이션', type: 'fairy', cat: 'sta', power: 0, pp: 10, cd: 4, kind: 'self', boosts: ['atk', 'spa'], statusOnly: true, sig: true, note: '이 게임에서는 자신의 공격과 특수공격이 오른다.' },
+  pyroball:    { name: '파이로볼', type: 'fire', cat: 'phy', power: 120, pp: 5, cd: 2.6, kind: 'proj', speed: 700, r: 16, range: 560, ball: true, status: ['brn', .1], fx: 'flame', sig: true, note: '불꽃 공을 찬다. 10% 확률로 화상.' },
+  drumbeating: { name: '드럼어택', type: 'grass', cat: 'phy', power: 80, pp: 10, cd: 1.8, kind: 'nova', radius: 140, drop: ['spe'], sig: true, note: '북을 쳐 맞히면 상대의 스피드가 떨어진다.' },
+  doubleironbash: { name: '더블아이언', type: 'steel', cat: 'phy', power: 60, pp: 5, cd: 1.6, kind: 'melee', reach: 72, arc: 1.5, count: 2, multiHit: true, punch: true, flinch: 0.3, sig: true, note: '강철 주먹을 두 번 날린다. 각각 30% 확률로 움찔하게 한다.' },
+  volttackle:  { name: '볼트태클', type: 'electric', cat: 'phy', power: 120, pp: 15, cd: 2.8, kind: 'dash', dist: 240, speed: 1100, recoil: .33, status: ['par', .1], sig: true, note: '전기 몸으로 들이받는다. 준 피해의 33%를 받고, 10% 확률로 마비.' },
+  icehammer:   { name: '아이스해머', type: 'ice', cat: 'phy', power: 100, pp: 10, cd: 2.4, kind: 'melee', reach: 74, arc: 1.5, punch: true, dropSelf: ['spe'], sig: true, note: '얼음 망치를 휘두른다. 자신의 스피드가 떨어진다.' },
+  mortalspin:  { name: '킬러스핀', type: 'poison', cat: 'phy', power: 30, pp: 15, cd: 1.4, kind: 'nova', radius: 120, status: ['psn', 1], clearHazard: true, sig: true, note: '독 회전. 맞히면 독을 걸고, 필드의 거다이맥스 여파를 걷어 낸다.' },
+  spicyextract:{ name: '스파이시익스트랙트', type: 'grass', cat: 'sta', power: 0, pp: 15, cd: 3.2, kind: 'proj', speed: 620, r: 12, range: 480, statusOnly: true, drop: ['def'], boostFoe: ['atk'], sig: true, note: '상대의 방어를 떨어뜨리고 공격을 올린다.' },
+  magicpowder: { name: '매직파우더', type: 'psychic', cat: 'sta', power: 0, pp: 15, cd: 3.4, kind: 'target', delay: .5, radius: 48, statusOnly: true, powder: true, sig: true, note: '8초 동안 상대를 에스퍼 타입으로 만든다.' },
+  topsyturvy:  { name: '뒤집어엎기', type: 'dark', cat: 'sta', power: 0, pp: 10, cd: 3.2, kind: 'target', delay: .4, radius: 48, statusOnly: true, invert: true, sig: true, note: '상대의 능력 변화를 반대로 뒤집는다.' },
 };
+
+// 다이맥스 기술. 공격 기술은 타입별로 바뀌고, 변화 기술은 다이월이 된다.
+const MAX_BY_TYPE = {
+  normal:   { name: '다이아택',   effect: null },
+  fire:     { name: '다이번',     effect: 'sun' },
+  water:    { name: '다이스트림', effect: 'rain' },
+  electric: { name: '다이썬더',   effect: 'electric' },
+  grass:    { name: '다이그래스', effect: 'grassy' },
+  ice:      { name: '다이아이스', effect: 'snow' },
+  fighting: { name: '다이너클',   effect: 'atk' },
+  poison:   { name: '다이애시드', effect: 'spa' },
+  ground:   { name: '다이아스',   effect: 'spd' },
+  flying:   { name: '다이제트',   effect: 'spe' },
+  psychic:  { name: '다이사이코', effect: 'psychic' },
+  bug:      { name: '다이웜',     effect: 'spddown' },
+  rock:     { name: '다이록',     effect: 'sand' },
+  ghost:    { name: '다이할로우', effect: 'defdown' },
+  dragon:   { name: '다이돌핀',   effect: 'atkdown' },
+  dark:     { name: '다이아크',   effect: 'spadown' },
+  steel:    { name: '다이스틸',   effect: 'def' },
+  fairy:    { name: '다이페어리', effect: 'misty' },
+};
+function maxMovePower(power, type) {
+  const low = type === 'fighting' || type === 'poison';
+  if (power >= 150) return low ? 100 : 150;
+  if (power >= 110) return low ? 95 : 140;
+  if (power >= 75) return low ? 90 : 130;
+  if (power >= 65) return low ? 85 : 120;
+  if (power >= 55) return low ? 80 : 110;
+  if (power >= 45) return low ? 75 : 100;
+  return low ? 70 : 90;
+}
+// 전용 거다이맥스 기술. 그 타입의 다이맥스 기술 대신 나간다.
+const GMAX_MOVES = {
+  venusaur:     { type: 'grass',    name: '거다이편달',   effect: 'hazard' },
+  charizard:    { type: 'fire',     name: '거다이옥염',   effect: 'hazard' },
+  blastoise:    { type: 'water',    name: '거다이포격',   effect: 'hazard' },
+  pikachu:      { type: 'electric', name: '거다이만뢰',   effect: 'par' },
+  gengar:       { type: 'ghost',    name: '거다이환영',   effect: 'trap' },
+  machamp:      { type: 'fighting', name: '거다이회심격', effect: 'crit' },
+  kingler:      { type: 'water',    name: '거다이포말',   effect: 'spedown' },
+  lapras:       { type: 'ice',      name: '거다이선율',   effect: 'veil' },
+  snorlax:      { type: 'normal',   name: '거다이재생',   effect: 'heal' },
+  rillaboom:    { type: 'grass',    name: '거다이난타',   effect: 'ignore', ignoresAbility: true },
+  cinderace:    { type: 'fire',     name: '거다이화염구', effect: 'ignore', ignoresAbility: true },
+  inteleon:     { type: 'water',    name: '거다이저격',   effect: 'ignore', ignoresAbility: true },
+  corviknight:  { type: 'flying',   name: '거다이풍격',   effect: 'clear' },
+  hatterene:    { type: 'fairy',    name: '거다이천벌',   effect: 'confuse' },
+  grimmsnarl:   { type: 'dark',     name: '거다이수마',   effect: 'yawn' },
+  urshifu:      { type: 'dark',     name: '거다이일격',   effect: 'sure', pierceGuard: true },
+  urshifurapid: { type: 'water',    name: '거다이연격',   effect: 'sure', pierceGuard: true },
+  drednaw:      { type: 'water',    name: '거다이암진' },
+  melmetal:     { type: 'steel',    name: '거다이융격' },
+  butterfree:   { type: 'bug',      name: '거다고혹',   effect: 'befuddle' },
+  meowth:       { type: 'normal',   name: '거다이금화', effect: 'confuse' },
+  eevee:        { type: 'normal',   name: '거다이포옹', effect: 'atkdown' },
+  garbodor:     { type: 'poison',   name: '거다이악취', effect: 'psn' },
+  orbeetle:     { type: 'psychic',  name: '거다이천도', effect: 'spedown' },
+  coalossal:    { type: 'rock',     name: '거다이분석', effect: 'hazard' },
+  flapple:      { type: 'grass',    name: '거다이산격', effect: 'defdown' },
+  appletun:     { type: 'grass',    name: '거다이감로', effect: 'cure' },
+  sandaconda:   { type: 'ground',   name: '거다이사진', effect: 'trap' },
+  toxtricity:   { type: 'electric', name: '거다이감전', effect: 'stunshock' },
+  toxtricitylow:{ type: 'electric', name: '거다이감전', effect: 'stunshock' },
+  centiskorch:  { type: 'fire',     name: '거다이백화', effect: 'hazard' },
+  alcremie:     { type: 'fairy',    name: '거다이단원', effect: 'heal' },
+  copperajah:   { type: 'steel',    name: '거다이강철진', effect: 'hazard' },
+  duraludon:    { type: 'dragon',   name: '거다이감쇠', effect: 'pp' },
+};
+
+const STAT_KO = { atk: '공격', def: '방어', spa: '특수공격', spd: '특수방어', spe: '스피드' };
+const STATUS_KO = { brn: '화상', par: '마비', frz: '얼음', psn: '독', tri: '화상·마비·얼음 중 하나' };
+const MAX_EFFECT_KO = {
+  sun: '쾌청을 깐다. 불꽃이 세지고 물이 약해진다',
+  rain: '비를 내리게 한다. 물이 세지고 불꽃이 약해진다',
+  sand: '모래바람을 일으킨다',
+  snow: '눈을 내리게 한다',
+  electric: '일렉트릭필드를 깐다',
+  psychic: '사이코필드를 깐다',
+  grassy: '그래스필드를 깐다',
+  misty: '미스트필드를 깐다',
+  atk: '자신의 공격이 오른다', def: '자신의 방어가 오른다', spa: '자신의 특수공격이 오른다', spe: '자신의 스피드가 오른다', spd: '자신의 특수방어가 오른다',
+  atkdown: '상대의 공격이 떨어진다', defdown: '상대의 방어가 떨어진다', spadown: '상대의 특수공격이 떨어진다', spddown: '상대의 특수방어가 떨어진다', spedown: '상대의 스피드가 떨어진다',
+  hazard: '같은 타입이 아닌 상대에게 한동안 지속 피해를 준다',
+  crit: '급소에 맞히기 쉬워진다',
+  heal: '자신의 HP를 회복한다',
+  veil: '잠시 받는 데미지가 절반이 된다',
+  trap: '상대가 잠시 교체할 수 없다',
+  confuse: '상대를 혼란에 빠뜨린다',
+  yawn: '상대를 졸게 한 뒤 잠들게 한다',
+  clear: '필드 효과를 걷어 낸다',
+  par: '상대를 반드시 마비시킨다',
+  ignore: '상대의 특성을 무시하고 때린다',
+  sure: '방어와 회피를 뚫고 맞힌다',
+  befuddle: '독·마비·얼음 중 하나를 건다',
+  stunshock: '독 또는 마비를 건다',
+  psn: '상대를 독에 걸리게 한다',
+  cure: '자신의 HP를 회복하고 상태이상을 낫게 한다',
+  pp: '상대 기술의 PP를 깎는다',
+};
+function moveText(mv) {
+  if (!mv) return '';
+  if (mv.max) {
+    if (mv.kind === 'guard' && !mv.maxEffect) return '공격을 잠시 막아 낸다.';
+    const extra = mv.maxEffect && MAX_EFFECT_KO[mv.maxEffect];
+    return extra ? extra + '.' : '다이맥스 기술.';
+  }
+  if (mv.note) return mv.note;
+  const bits = [];
+  if (mv.priority) bits.push('빠르게 나간다');
+  if (mv.opening) bits.push('나온 직후에만 성공한다');
+  if (mv.sucker) bits.push('상대가 기술을 쓰는 중에만 맞는다');
+  if (mv.first) bits.push('자신이 더 빠르면 위력이 2배');
+  if (mv.counter) bits.push('물리 공격을 받으면 ' + mv.counter + '배로 되돌린다');
+  if (mv.boosts) bits.push(mv.boosts.map(s => STAT_KO[s]).join('·') + ' 상승');
+  if (mv.drop) bits.push('맞히면 상대의 ' + mv.drop.map(s => STAT_KO[s]).join('·') + ' 하락');
+  if (mv.dropSelf) bits.push('쓰면 자신의 ' + mv.dropSelf.map(s => STAT_KO[s]).join('·') + ' 하락');
+  if (mv.onko) bits.push('쓰러뜨리면 자신의 ' + STAT_KO[mv.onko] + '이 크게 오른다');
+  if (mv.status) bits.push(Math.round(mv.status[1] * 100) + '% 확률로 ' + (STATUS_KO[mv.status[0]] || '상태이상'));
+  if (mv.flinch) bits.push('맞히면 상대가 움찔한다');
+  if (mv.recoil) bits.push('준 데미지의 ' + Math.round(mv.recoil * 100) + '%를 자신이 받는다');
+  if (mv.crash) bits.push('빗나가면 최대 HP의 ' + Math.round(mv.crash * 100) + '%를 잃는다');
+  if (mv.drain) bits.push('준 데미지의 ' + Math.round(mv.drain * 100) + '%만큼 회복한다');
+  if (mv.critBoost) bits.push('급소에 맞기 쉽다');
+  if (mv.alwaysCrit) bits.push('항상 급소에 맞는다');
+  if (mv.facade) bits.push('자신이 상태이상이면 위력이 2배');
+  if (mv.hex) bits.push('상대가 상태이상이면 위력이 2배');
+  if (mv.halfHp) bits.push('상대의 남은 HP를 절반 깎는다');
+  if (mv.hpRatio) bits.push('상대의 남은 HP를 크게 깎는다');
+  if (mv.selfStun) bits.push('쓰고 나면 잠시 굳는다');
+  if (mv.charge) bits.push('발사 전에 조준한다');
+  if (mv.multiHit || (mv.count && mv.count > 1)) bits.push((mv.rollHits ? '2~5발' : (mv.count || 2) + '발') + ' 나간다');
+  if (mv.sound) bits.push('소리로 공격한다');
+  if (mv.payday) bits.push('맞히면 PP를 1 돌려받는다');
+  if (mv.tar) bits.push('상대가 잠시 불꽃에 약해진다');
+  if (mv.powder) bits.push('상대를 잠시 에스퍼 타입으로 만든다');
+  if (mv.invert) bits.push('상대의 능력 변화를 뒤집는다');
+  if (mv.boostFoe) bits.push('상대의 ' + mv.boostFoe.map(s => STAT_KO[s]).join('·') + ' 상승');
+  if (mv.smackDown) bits.push('비행과 부유를 무시하고, 맞으면 땅에 내려앉는다');
+  if (mv.trap) bits.push('맞으면 한동안 교체할 수 없다');
+  if (mv.suppress) bits.push('이미 기술을 쓴 상대의 특성을 지운다');
+  if (mv.terrainDash) bits.push('그래스필드에서는 더 빠르게 미끄러진다');
+  if (mv.pivot) bits.push('맞힌 뒤 다른 포켓몬으로 돌아간다');
+  if (mv.ignoresAbility) bits.push('상대의 특성을 무시한다');
+  if (mv.freezeDry) bits.push('물 타입에게 효과가 굉장하다');
+  if (!bits.length && mv.power > 0) bits.push(mv.cat === 'phy' ? '물리 공격' : '특수 공격');
+  if (!bits.length) bits.push('변화 기술');
+  return bits.join('. ') + '.';
+}
+function battleMove(mon, id) {
+  const base = MOVES[id];
+  if (!base || !mon || !(mon.dmax || mon.gmax) || id === 'struggle' || base.z) return base;
+  if (!base.power || base.statusOnly) {
+    return {
+      id: base.id, name: '다이월', type: 'normal', cat: 'sta', power: 0, cd: Math.max(base.cd || 1, 2.2),
+      kind: 'guard', guard: 1.15, max: true,
+    };
+  }
+  const type = base.type === 'none' ? 'normal' : base.type;
+  const gmax = mon.gmax && mon.baseSp && GMAX_MOVES[mon.baseSp.key];
+  const info = (gmax && gmax.type === type) ? gmax : (MAX_BY_TYPE[type] || MAX_BY_TYPE.normal);
+  const mv = {
+    ...base,
+    name: info.name,
+    type,
+    power: maxMovePower(base.power, type),
+    max: true,
+    maxEffect: info.effect,
+    ignoresAbility: !!info.ignoresAbility,
+    pierceGuard: !!info.pierceGuard,
+    status: info.effect === 'par' ? ['par', 1] : null,
+    statusOnly: false,
+    recoil: 0,
+    selfStun: 0,
+    halfHp: false,
+    hpRatio: 0,
+    flinch: false,
+    drain: 0,
+    count: 1,
+    rollHits: false,
+    multiHit: false,
+    cd: Math.max(base.cd || 1, 1.35),
+  };
+  if (mv.kind === 'beam' && mv.width) mv.width = Math.round(mv.width * 1.25);
+  if (mv.kind === 'nova' && mv.radius) mv.radius = Math.round(mv.radius * 1.2);
+  if (mv.kind === 'melee' && mv.reach) mv.reach = Math.round(mv.reach * 1.15);
+  if (mv.kind === 'proj' && mv.r) mv.r = Math.round(mv.r * 1.35);
+  if (mv.kind === 'target' && mv.radius) mv.radius = Math.round(mv.radius * 1.15);
+  return mv;
+}
 
 // 전용 Z기술. 메가·거다이맥스와 따로, 팀당 1번.
 const Z_MOVES = {
@@ -379,6 +599,8 @@ const ABILITIES = {
   multiscale:   { name: '멀티스케일',   desc: 'HP가 가득 찼을 때 받는 데미지가 절반.' },
   thickfat:     { name: '두꺼운지방',   desc: '불꽃·얼음 기술 데미지가 절반.' },
   pressure:     { name: '프레셔',       desc: '상대가 기술을 쓸 때 PP를 1 더 소모시킨다.' },
+  powerconstruct:{ name: '스웜체인지',   desc: 'HP가 절반 이하가 되면 한 번 퍼펙트폼으로 변한다. 쓰러뜨릴 공격이어도 변하며, 늘어난 최대 HP만큼 체력이 채워진다.' },
+  suppressed:   { name: '특성 없음',   desc: '특성이 지워진 상태다.' },
   airlock:      { name: '에어록',       desc: '필드에 있는 동안 날씨의 효과가 사라진다.' },
   speedboost:   { name: '가속',         desc: '필드에 있는 동안 점점 빨라진다 (최대 +50%).' },
   technician:   { name: '테크니션',     desc: '위력 60 이하 기술의 위력이 1.5배.' },
@@ -419,6 +641,12 @@ const ABILITIES = {
   pixilate:     { name: '페어리스킨',   desc: '노말 기술이 페어리 타입이 되고 위력이 1.2배.' },
   aerilate:     { name: '스카이스킨',   desc: '노말 기술이 비행 타입이 되고 위력이 1.2배.' },
   dragonize:    { name: '드래곤스킨',   desc: '노말 기술이 드래곤 타입이 되고 위력이 1.2배.' },
+  refrigerate:  { name: '프리즈스킨',   desc: '노말 기술이 얼음 타입이 되고 위력이 1.2배.' },
+  swarm:        { name: '벌레의알림',   desc: 'HP가 1/3 이하일 때 벌레 기술 위력 1.5배.' },
+  moxie:        { name: '자기과신',     desc: '상대를 쓰러뜨리면 공격이 오른다.' },
+  beastboost:   { name: '비스트부스트', desc: '상대를 쓰러뜨리면 가장 높은 능력이 오른다.' },
+  berserk:      { name: '분노의경혈',   desc: 'HP가 절반 이하가 되면 특수공격이 오른다.' },
+  poisonpoint:  { name: '독가시',       desc: '근접·돌진 공격을 한 상대를 30% 확률로 독에 걸리게 한다.' },
   snowwarning:  { name: '눈퍼뜨리기',   desc: '등장하면 25초간 눈. 얼음 타입의 방어가 1.5배.' },
   stalwart:     { name: '굳건한신념',   desc: '기술을 끌어당기는 효과를 무시한다.' },
   infiltrator:  { name: '틈새포착',     desc: '빛의장막·리플렉터·신비의부적을 무시하고 공격한다.' },
@@ -481,7 +709,7 @@ const ABILITIES = {
 // extra: 랜덤 기술 뽑기에 추가로 나오는 기술
 const POKEMON = [
   { id: 19,  key: 'rattata',   name: '꼬렛',       types: ['normal'],            base: [30, 56, 35, 25, 35, 72],     moves: ['hyperbeam', 'quickattack', 'crunch', 'facade'], extra: ['irontail', 'suckerpunch', 'shadowclaw'], fixedLevel: 100 },
-  { id: 25,  key: 'pikachu',   name: '피카츄',     types: ['electric'],          base: [35, 55, 40, 50, 50, 90],     moves: ['thunderbolt', 'quickattack', 'irontail', 'thunder'] },
+  { id: 25,  key: 'pikachu',   name: '피카츄',     types: ['electric'],          base: [35, 55, 40, 50, 50, 90],     moves: ['volttackle', 'thunderbolt', 'quickattack', 'thunder'], extra: ['irontail'] },
   { id: 10094, key: 'ashpikachu', name: '지우피카츄', types: ['electric'],       base: [35, 55, 40, 50, 50, 90],     moves: ['thunderbolt', 'quickattack', 'irontail', 'thunder'], extra: ['wildcharge'] },
   { id: 6,   key: 'charizard', name: '리자몽',     types: ['fire', 'flying'],    base: [78, 84, 78, 109, 85, 100],   moves: ['flamethrower', 'airslash', 'dragonclaw', 'fireblast'], extra: ['earthquake', 'solarbeam', 'dragonpulse'] },
   { id: 9,   key: 'blastoise', name: '거북왕',     types: ['water'],             base: [79, 83, 100, 85, 105, 78],   moves: ['hydropump', 'surf', 'icebeam', 'bite'], extra: ['aurasphere', 'darkpulse', 'dragonpulse', 'flashcannon'] },
@@ -567,7 +795,7 @@ const POKEMON = [
   { id: 727, key: 'incineroar',name: '어흥염',     types: ['fire', 'dark'],      base: [95, 115, 90, 80, 90, 60],    moves: ['flareblitz', 'knockoff', 'firefang', 'uturn'], extra: ['closecombat', 'crosschop'] },
   { id: 730, key: 'primarina', name: '누리레느',   types: ['water', 'fairy'],    base: [80, 74, 74, 126, 116, 60],   moves: ['moonblast', 'hydropump', 'icebeam', 'drainingkiss'], extra: ['psychic', 'energyball'] },
   { id: 784, key: 'kommoo',    name: '짜랑고우거', types: ['dragon', 'fighting'],base: [75, 110, 125, 100, 105, 85], moves: ['closecombat', 'dragonclaw', 'drainpunch', 'poisonjab'], extra: ['ironhead', 'earthquake'] },
-  { id: 815, key: 'cinderace', name: '에이스번',   types: ['fire'],              base: [80, 116, 75, 65, 75, 119],   moves: ['flareblitz', 'highjumpkick', 'uturn', 'suckerpunch'], extra: ['ironhead', 'gunkshot'] },
+  { id: 815, key: 'cinderace', name: '에이스번',   types: ['fire'],              base: [80, 116, 75, 65, 75, 119],   moves: ['pyroball', 'flareblitz', 'highjumpkick', 'uturn'], extra: ['suckerpunch', 'ironhead', 'gunkshot'] },
   { id: 887, key: 'dragapult', name: '드래펄트',   types: ['dragon', 'ghost'],   base: [88, 120, 75, 100, 75, 142],  moves: ['dragondarts', 'phantomforce', 'uturn', 'suckerpunch'], extra: ['shadowball', 'dracometeor', 'fireblast'] },
   { id: 823, key: 'corviknight',name: '아머까오',  types: ['flying', 'steel'],   base: [98, 87, 105, 53, 85, 67],    moves: ['bravebird', 'ironhead', 'bodypress', 'drillpeck'], extra: ['uturn', 'knockoff'] },
   { id: 31,  key: 'nidoqueen', name: '니드퀸',     types: ['poison', 'ground'],  base: [90, 92, 87, 75, 85, 76],     moves: ['earthpower', 'sludgebomb', 'icebeam', 'thunderbolt'], extra: ['poisonjab', 'fireblast', 'stoneedge'] },
@@ -603,11 +831,12 @@ const POKEMON = [
   { id: 663, key: 'talonflame',name: '파이어로',   types: ['fire', 'flying'],    base: [78, 81, 71, 74, 69, 126],    moves: ['bravebird', 'flareblitz', 'uturn', 'overheat'], extra: ['heatwave'] },
   { id: 681, key: 'aegislash', name: '킬가르도',   types: ['steel', 'ghost'],    base: [60, 50, 140, 50, 140, 60],   moves: ['shadowball', 'flashcannon', 'shadowsneak', 'sacredsword'], extra: ['ironhead'] },
   { id: 715, key: 'noivern',   name: '음번',       types: ['flying', 'dragon'],  base: [85, 70, 80, 97, 80, 123],    moves: ['dracometeor', 'hurricane', 'flamethrower', 'uturn'], extra: ['airslash', 'dragonpulse', 'boomburst'] },
+  { id: 722, key: 'rowlet',    name: '나몰빼미',   types: ['grass', 'flying'],   base: [68, 55, 55, 50, 50, 42],     moves: ['leafblade', 'bravebird', 'suckerpunch', 'razorleaf'], extra: ['energyball', 'solarbeam', 'shadowball', 'gigadrain', 'acrobatics'], fixedLevel: 100 },
   { id: 724, key: 'decidueye', name: '모크나이퍼', types: ['grass', 'ghost'],    base: [78, 107, 75, 100, 100, 70],  moves: ['spiritshackle', 'leafblade', 'suckerpunch', 'uturn'], extra: ['bravebird', 'shadowsneak'] },
   { id: 748, key: 'toxapex',   name: '더시마사리', types: ['poison', 'water'],   base: [50, 63, 152, 53, 142, 35],   moves: ['scald', 'sludgebomb', 'knockoff', 'icebeam'] },
-  { id: 812, key: 'rillaboom', name: '고릴타',     types: ['grass'],             base: [100, 125, 90, 60, 70, 85],   moves: ['grassyglide', 'woodhammer', 'knockoff', 'uturn'], extra: ['superpower', 'drainpunch'] },
+  { id: 812, key: 'rillaboom', name: '고릴타',     types: ['grass'],             base: [100, 125, 90, 60, 70, 85],   moves: ['drumbeating', 'grassyglide', 'woodhammer', 'knockoff'], extra: ['uturn', 'superpower', 'drainpunch'] },
   { id: 818, key: 'inteleon',  name: '인텔리레온', types: ['water'],             base: [70, 85, 65, 125, 65, 120],   moves: ['snipeshot', 'icebeam', 'darkpulse', 'uturn'], extra: ['hydropump', 'airslash'] },
-  { id: 858, key: 'hatterene', name: '브리무음',   types: ['psychic', 'fairy'],  base: [57, 90, 95, 136, 103, 29],   moves: ['psychic', 'dazzlinggleam', 'mysticalfire', 'shadowball'], extra: ['psyshock'] },
+  { id: 858, key: 'hatterene', name: '브리무음',   types: ['psychic', 'fairy'],  base: [57, 90, 95, 136, 103, 29],   moves: ['magicpowder', 'psychic', 'dazzlinggleam', 'mysticalfire'], extra: ['shadowball', 'psyshock'] },
   { id: 861, key: 'grimmsnarl',name: '오롱털',     types: ['dark', 'fairy'],     base: [95, 120, 65, 95, 75, 60],    moves: ['spiritbreak', 'darkestlariat', 'suckerpunch', 'playrough'], extra: ['firepunch'] },
   { id: 983, key: 'kingambit', name: '대도각참',   types: ['dark', 'steel'],     base: [100, 135, 120, 60, 85, 50],  moves: ['kowtowcleave', 'ironhead', 'suckerpunch', 'knockoff'], extra: ['lowkick'] },
   { id: 184, key: 'azumarill', name: '마릴리',     types: ['water', 'fairy'],    base: [100, 50, 80, 60, 80, 50],    moves: ['playrough', 'liquidation', 'aquajet', 'doubleedge'], extra: ['knockoff'] },
@@ -621,6 +850,43 @@ const POKEMON = [
   { id: 914, key: 'quaquaval', name: '웨이니발',   types: ['water', 'fighting'], base: [85, 120, 80, 85, 75, 85],    moves: ['liquidation', 'closecombat', 'aquajet', 'icepunch'], extra: ['bravebird'] },
   { id: 865, key: 'sirfetchd', name: '창파나이트', types: ['fighting'],          base: [62, 135, 95, 68, 82, 65],    moves: ['meteorassault', 'leafblade', 'bravebird', 'closecombat'], extra: ['knockoff', 'nightslash', 'poisonjab'] },
   { id: 882, key: 'dracovish', name: '어래곤',     types: ['water', 'dragon'],   base: [90, 90, 100, 70, 80, 75],    moves: ['fishiousrend', 'crunch', 'outrage', 'icefang'], extra: ['psychicfangs', 'earthquake', 'liquidation', 'dragonclaw'] },
+  { id: 745, key: 'lycanroc',  name: '루가루암',   types: ['rock'],              base: [75, 115, 65, 55, 65, 112],   moves: ['accelerock', 'stoneedge', 'crunch', 'playrough'], extra: ['counter', 'firefang', 'drillrun', 'rockslide'] },
+  { id: 10126, key: 'lycanrocmidnight', name: '루가루암(한밤중)', types: ['rock'], base: [85, 115, 75, 55, 75, 82], moves: ['counter', 'stoneedge', 'crunch', 'suckerpunch'], extra: ['accelerock', 'psychicfangs', 'thunderfang', 'closecombat'] },
+  { id: 10152, key: 'lycanrocdusk', name: '루가루암(황혼)', types: ['rock'],     base: [75, 117, 65, 55, 65, 110],   moves: ['accelerock', 'stoneedge', 'closecombat', 'drillrun'], extra: ['counter', 'playrough', 'firefang', 'crunch'] },
+  { id: 12,  key: 'butterfree', name: '버터플',   types: ['bug', 'flying'],     base: [60, 45, 50, 90, 80, 70],     moves: ['bugbuzz', 'airslash', 'psychic', 'sleeppowder'], extra: ['energyball', 'shadowball', 'quiverdance'] },
+  { id: 52,  key: 'meowth',    name: '냐옹',       types: ['normal'],            base: [40, 45, 35, 40, 40, 90],     moves: ['payday', 'fakeout', 'playrough', 'nightslash'], extra: ['aerialace', 'thunderbolt', 'uturn'] },
+  { id: 133, key: 'eevee',     name: '이브이',     types: ['normal'],            base: [55, 55, 50, 45, 65, 55],     moves: ['quickattack', 'doubleedge', 'irontail', 'shadowball'], extra: ['crunch', 'bodyslam', 'hypervoice'] },
+  { id: 15,  key: 'beedrill',  name: '독침붕',     types: ['bug', 'poison'],     base: [65, 90, 40, 45, 80, 75],     moves: ['megahorn', 'poisonjab', 'xscissor', 'fellstinger'], extra: ['drillrun', 'uturn'] },
+  { id: 308, key: 'medicham',  name: '요가램',     types: ['fighting', 'psychic'], base: [60, 60, 75, 60, 75, 80],   moves: ['highjumpkick', 'closecombat', 'zenheadbutt', 'icepunch'], extra: ['firepunch', 'thunderpunch'] },
+  { id: 531, key: 'audino',    name: '다부니',     types: ['normal'],            base: [103, 60, 86, 60, 86, 50],    moves: ['hypervoice', 'dazzlinggleam', 'thunderbolt', 'icebeam'], extra: ['flamethrower', 'shadowball'] },
+  { id: 71,  key: 'victreebel', name: '우츠보트', types: ['grass', 'poison'],   base: [80, 105, 65, 100, 70, 70],   moves: ['powerwhip', 'sludgebomb', 'suckerpunch', 'leafblade'], extra: ['sleeppowder', 'energyball'] },
+  { id: 545, key: 'scolipede', name: '펜드라',     types: ['bug', 'poison'],     base: [60, 100, 89, 55, 69, 112],   moves: ['megahorn', 'poisonjab', 'earthquake', 'rockslide'], extra: ['xscissor', 'uturn'] },
+  { id: 668, key: 'pyroar',    name: '화염레오',   types: ['fire', 'normal'],    base: [86, 68, 72, 109, 66, 106],   moves: ['flamethrower', 'hypervoice', 'darkpulse', 'wildcharge'], extra: ['overheat', 'solarbeam'] },
+  { id: 670, key: 'floette',   name: '플라엣',     types: ['fairy'],             base: [54, 45, 47, 75, 98, 52],     moves: ['moonblast', 'dazzlinggleam', 'psychic', 'energyball'], extra: ['drainingkiss'] },
+  { id: 687, key: 'malamar',   name: '칼라마네로', types: ['dark', 'psychic'],   base: [86, 92, 88, 68, 75, 73],     moves: ['topsyturvy', 'knockoff', 'psychic', 'superpower'], extra: ['nightslash', 'psychocut'] },
+  { id: 689, key: 'barbaracle', name: '거북손데스', types: ['rock', 'water'],    base: [72, 105, 115, 54, 86, 68],   moves: ['stoneedge', 'liquidation', 'crosschop', 'earthquake'], extra: ['poisonjab', 'xscissor'] },
+  { id: 691, key: 'dragalge',  name: '드래캄',     types: ['poison', 'dragon'],  base: [65, 75, 90, 97, 123, 44],    moves: ['sludgebomb', 'dracometeor', 'hydropump', 'thunderbolt'], extra: ['dragonpulse'] },
+  { id: 780, key: 'drampa',    name: '할비롱',     types: ['normal', 'dragon'],  base: [78, 60, 85, 135, 91, 36],    moves: ['hypervoice', 'dragonpulse', 'flamethrower', 'icebeam'], extra: ['energyball', 'thunderbolt'] },
+  { id: 870, key: 'falinks',   name: '대여르',     types: ['fighting'],          base: [65, 100, 100, 70, 60, 75],   moves: ['closecombat', 'noretreat', 'megahorn', 'ironhead'], extra: ['rockslide', 'poisonjab'] },
+  { id: 358, key: 'chimecho',  name: '치렁',       types: ['psychic'],           base: [75, 50, 80, 95, 90, 65],     moves: ['psychic', 'dazzlinggleam', 'shadowball', 'thunderbolt'], extra: ['energyball'] },
+  { id: 678, key: 'meowstic',  name: '냐오닉스',   types: ['psychic'],           base: [74, 48, 76, 83, 81, 104],    moves: ['psychic', 'dazzlinggleam', 'shadowball', 'thunderbolt'], extra: ['energyball', 'fakeout'] },
+  { id: 740, key: 'crabominable', name: '모단단게', types: ['fighting', 'ice'],  base: [97, 132, 77, 62, 67, 43],    moves: ['icehammer', 'closecombat', 'earthquake', 'icepunch'], extra: ['crabhammer', 'drainpunch', 'thunderpunch'] },
+  { id: 768, key: 'golisopod', name: '갑주무사',   types: ['bug', 'water'],      base: [75, 125, 140, 60, 90, 40],   moves: ['firstimpression', 'liquidation', 'closecombat', 'leechlife'], extra: ['aquajet', 'knockoff'] },
+  { id: 952, key: 'scovillain', name: '스코빌런', types: ['grass', 'fire'],     base: [65, 108, 65, 108, 65, 75],   moves: ['spicyextract', 'flamethrower', 'energyball', 'overheat'], extra: ['solarbeam', 'crunch', 'fireblast'] },
+  { id: 970, key: 'glimmora',  name: '킬라플로르', types: ['rock', 'poison'],    base: [83, 55, 90, 130, 81, 86],    moves: ['mortalspin', 'powergem', 'sludgebomb', 'earthpower'], extra: ['dazzlinggleam', 'energyball'] },
+  { id: 978, key: 'tatsugiri', name: '싸리용',     types: ['dragon', 'water'],   base: [68, 50, 60, 120, 95, 82],    moves: ['dragonpulse', 'hydropump', 'icywind', 'dazzlinggleam'], extra: ['dracometeor'] },
+  { id: 569, key: 'garbodor',  name: '더스트나',   types: ['poison'],            base: [80, 95, 82, 60, 82, 75],     moves: ['gunkshot', 'poisonjab', 'earthquake', 'seedbomb'], extra: ['rockslide'] },
+  { id: 826, key: 'orbeetle',  name: '이올브',     types: ['bug', 'psychic'],    base: [60, 45, 110, 80, 120, 90],   moves: ['psychic', 'bugbuzz', 'energyball', 'shadowball'], extra: ['dazzlinggleam'] },
+  { id: 839, key: 'coalossal', name: '석탄산',     types: ['rock', 'fire'],      base: [110, 80, 120, 80, 90, 30],   moves: ['flareblitz', 'stoneedge', 'earthquake', 'tarshot'], extra: ['fireblast', 'heatcrash'] },
+  { id: 841, key: 'flapple',   name: '애프룡',     types: ['grass', 'dragon'],   base: [70, 110, 80, 95, 60, 70],    moves: ['gravapple', 'outrage', 'acrobatics', 'uturn'], extra: ['dragonrush', 'seedbomb'] },
+  { id: 842, key: 'appletun',  name: '단지래플',   types: ['grass', 'dragon'],   base: [110, 85, 80, 100, 80, 30],   moves: ['appleacid', 'dragonpulse', 'energyball', 'earthquake'], extra: ['dracometeor'] },
+  { id: 844, key: 'sandaconda', name: '사다이사', types: ['ground'],            base: [72, 107, 125, 65, 70, 71],   moves: ['earthquake', 'stoneedge', 'crunch', 'rockslide'], extra: ['outrage', 'bulldoze'] },
+  { id: 849, key: 'toxtricity', name: '스트린더', types: ['electric', 'poison'], base: [75, 98, 70, 114, 70, 75],   moves: ['overdrive', 'boomburst', 'drainpunch', 'poisonjab'], extra: ['wildcharge', 'sludgebomb'] },
+  { id: 10184, key: 'toxtricitylow', name: '스트린더(로우)', types: ['electric', 'poison'], base: [75, 98, 70, 114, 70, 75], moves: ['overdrive', 'boomburst', 'drainpunch', 'sludgebomb'], extra: ['wildcharge', 'poisonjab'] },
+  { id: 851, key: 'centiskorch', name: '다태우지네', types: ['fire', 'bug'],     base: [100, 115, 65, 90, 90, 65],   moves: ['firelash', 'xscissor', 'crunch', 'flareblitz'], extra: ['leechlife', 'thunderfang'] },
+  { id: 869, key: 'alcremie',  name: '마휘핑',     types: ['fairy'],             base: [65, 60, 75, 110, 121, 64],   moves: ['decorate', 'dazzlinggleam', 'moonblast', 'psychic'], extra: ['drainingkiss'] },
+  { id: 879, key: 'copperajah', name: '대왕끼리동', types: ['steel'],            base: [122, 130, 69, 80, 69, 30],   moves: ['heavyslam', 'earthquake', 'stoneedge', 'ironhead'], extra: ['playrough', 'superpower'] },
+  { id: 884, key: 'duraludon', name: '두랄루돈',   types: ['steel', 'dragon'],   base: [70, 95, 115, 120, 50, 85],   moves: ['flashcannon', 'dracometeor', 'thunderbolt', 'stoneedge'], extra: ['dragonpulse'] },
   { id: 979, key: 'annihilape',name: '저승갓숭',   types: ['fighting', 'ghost'], base: [110, 115, 80, 50, 90, 90],   moves: ['closecombat', 'shadowclaw', 'drainpunch', 'earthquake'], extra: ['icepunch'] },
   { id: 1000,key: 'gholdengo', name: '타부자고',   types: ['steel', 'ghost'],    base: [87, 60, 95, 133, 91, 84],    moves: ['makeitrain', 'shadowball', 'dazzlinggleam', 'thunderbolt'], extra: ['focusblast'] },
   { id: 959, key: 'tinkaton',  name: '두드리짱',   types: ['fairy', 'steel'],    base: [85, 75, 77, 70, 105, 94],    moves: ['gigatonhammer', 'playrough', 'knockoff', 'ironhead'], extra: ['flashcannon'] },
@@ -769,14 +1035,25 @@ const POKEMON = [
   { id: 642, key: 'thundurus', name: '볼트로스',   types: ['electric', 'flying'], base: [79, 115, 70, 125, 80, 111], moves: ['thunderbolt', 'thunder', 'focusblast', 'uturn'], extra: ['heatwave'], legend: true },
   { id: 648, key: 'meloetta',  name: '메로엣타',   types: ['normal', 'psychic'], base: [100, 77, 77, 128, 128, 90],  moves: ['hypervoice', 'psychic', 'focusblast', 'shadowball'], extra: ['dazzlinggleam'], legend: true },
   { id: 649, key: 'genesect',  name: '게노세크트', types: ['bug', 'steel'],      base: [71, 120, 95, 120, 95, 99],   moves: ['flashcannon', 'bugbuzz', 'flamethrower', 'icebeam'], extra: ['thunderbolt', 'uturn'], legend: true },
-  { id: 718, key: 'zygarde',   name: '지가르데',   types: ['dragon', 'ground'],  base: [108, 100, 121, 81, 95, 95],  moves: ['earthquake', 'outrage', 'dragonclaw', 'stoneedge'], extra: ['extremespeed'], legend: true },
+  { id: 718, key: 'zygarde',   name: '지가르데',   types: ['dragon', 'ground'],  base: [108, 100, 121, 81, 95, 95],  moves: ['thousandarrows', 'coreenforcer', 'outrage', 'extremespeed'], extra: ['thousandwaves', 'landswrath', 'earthquake', 'dragonclaw', 'stoneedge'], legend: true },
   { id: 719, key: 'diancie',   name: '디안시',     types: ['rock', 'fairy'],     base: [50, 100, 150, 100, 150, 50], moves: ['moonblast', 'powergem', 'earthpower', 'bodypress'], extra: ['dazzlinggleam'], legend: true },
   { id: 720, key: 'hoopa',     name: '후파',       types: ['psychic', 'ghost'],  base: [80, 110, 60, 150, 130, 70],  moves: ['psychic', 'shadowball', 'focusblast', 'thunderbolt'], extra: ['darkpulse'], legend: true },
   { id: 721, key: 'volcanion', name: '볼케니온',   types: ['fire', 'water'],     base: [80, 110, 120, 130, 90, 70],  moves: ['flamethrower', 'hydropump', 'earthpower', 'flashcannon'], extra: ['overheat'], legend: true },
+  { id: 793, key: 'nihilego',  name: '텅비드',     types: ['rock', 'poison'],    base: [109, 53, 47, 127, 131, 103], moves: ['powergem', 'sludgewave', 'thunderbolt', 'dazzlinggleam'], extra: ['earthpower', 'psychic'], legend: true },
+  { id: 794, key: 'buzzwole',  name: '매시붕',     types: ['bug', 'fighting'],   base: [107, 139, 139, 53, 53, 79],  moves: ['leechlife', 'closecombat', 'icepunch', 'earthquake'], extra: ['poisonjab', 'stoneedge'], legend: true },
+  { id: 795, key: 'pheromosa', name: '페로코체',   types: ['bug', 'fighting'],   base: [71, 137, 37, 137, 37, 151],  moves: ['highjumpkick', 'uturn', 'icebeam', 'poisonjab'], extra: ['bugbuzz', 'closecombat'], legend: true },
+  { id: 796, key: 'xurkitree', name: '전수목',     types: ['electric'],          base: [83, 89, 71, 173, 71, 83],    moves: ['thunderbolt', 'energyball', 'dazzlinggleam', 'thunder'], extra: ['voltswitch', 'focusblast'], legend: true },
+  { id: 797, key: 'celesteela', name: '철화구야',  types: ['steel', 'flying'],   base: [97, 101, 103, 107, 101, 61], moves: ['flashcannon', 'airslash', 'earthquake', 'flamethrower'], extra: ['heavyslam', 'ironhead'], legend: true },
+  { id: 798, key: 'kartana',   name: '종이신도',   types: ['grass', 'steel'],    base: [59, 181, 131, 59, 31, 109],  moves: ['leafblade', 'sacredsword', 'knockoff', 'nightslash'], extra: ['ironhead', 'xscissor'], legend: true },
+  { id: 799, key: 'guzzlord',  name: '악식킹',     types: ['dark', 'dragon'],    base: [223, 101, 53, 97, 53, 43],   moves: ['crunch', 'outrage', 'darkpulse', 'earthquake'], extra: ['heavyslam', 'dragonpulse'], legend: true },
+  { id: 803, key: 'poipole',   name: '베베놈',     types: ['poison'],            base: [67, 73, 67, 73, 67, 73],     moves: ['sludgewave', 'poisonjab', 'darkpulse', 'uturn'], extra: ['gunkshot'], legend: true },
+  { id: 804, key: 'naganadel', name: '아고용',     types: ['poison', 'dragon'],  base: [73, 73, 73, 127, 73, 121],   moves: ['sludgewave', 'dracometeor', 'flamethrower', 'uturn'], extra: ['dragonpulse', 'fireblast'], legend: true },
+  { id: 805, key: 'stakataka', name: '차곡차곡',   types: ['rock', 'steel'],     base: [61, 131, 211, 53, 101, 13],  moves: ['bodypress', 'earthquake', 'stoneedge', 'heavyslam'], extra: ['ironhead', 'rockslide'], legend: true },
+  { id: 806, key: 'blacephalon', name: '두파팡',   types: ['fire', 'ghost'],     base: [53, 127, 53, 151, 79, 107],  moves: ['mindblown', 'fireblast', 'shadowball', 'psychic'], extra: ['overheat', 'dazzlinggleam'], legend: true },
   { id: 801, key: 'magearna',  name: '마기아나',   types: ['steel', 'fairy'],    base: [80, 95, 115, 130, 115, 65],  moves: ['flashcannon', 'moonblast', 'aurasphere', 'focusblast'], extra: ['thunderbolt'], legend: true },
   { id: 802, key: 'marshadow', name: '마샤도',     types: ['fighting', 'ghost'], base: [90, 125, 80, 90, 90, 125],   moves: ['closecombat', 'shadowsneak', 'icepunch', 'suckerpunch'], extra: ['poltergeist'], legend: true },
   { id: 807, key: 'zeraora',   name: '제라오라',   types: ['electric'],          base: [88, 112, 75, 102, 80, 143],  moves: ['wildcharge', 'closecombat', 'thunderpunch', 'drainpunch'], extra: ['playrough'], legend: true },
-  { id: 809, key: 'melmetal',  name: '멜메탈',     types: ['steel'],             base: [135, 143, 143, 80, 65, 34],  moves: ['heavyslam', 'earthquake', 'thunderpunch', 'icepunch'], extra: ['superpower'], legend: true },
+  { id: 809, key: 'melmetal',  name: '멜메탈',     types: ['steel'],             base: [135, 143, 143, 80, 65, 34],  moves: ['doubleironbash', 'heavyslam', 'earthquake', 'thunderpunch'], extra: ['icepunch', 'superpower'], legend: true },
   { id: 896, key: 'glastrier', name: '블리자포스', types: ['ice'],               base: [100, 145, 130, 65, 110, 30], moves: ['iciclecrash', 'closecombat', 'highhorsepower', 'bodypress'], extra: ['zenheadbutt'], legend: true },
   { id: 897, key: 'spectrier', name: '레이스포스', types: ['ghost'],             base: [100, 65, 60, 145, 80, 130],  moves: ['shadowball', 'psychic', 'drainingkiss', 'hex'], extra: ['darkpulse'], legend: true },
   { id: 10193, key: 'calyrexice', name: '버드렉스(백마 탄 모습)', types: ['psychic', 'ice'], base: [100, 165, 150, 85, 130, 50], moves: ['iciclecrash', 'closecombat', 'highhorsepower', 'bodypress'], extra: ['zenheadbutt'], legend: true },
@@ -814,7 +1091,7 @@ const POKEMON_ABILITY = {
   breloom: 'technician', gliscor: 'magicguard', blissey: 'naturalcure', hariyama: 'guts', mawile: 'intimidate',
   manectric: 'lightningrod', hippowdon: 'sandstream', drapion: 'shellarmor', zoroark: 'disguise', ferrothorn: 'roughskin',
   mienshao: 'regenerator', golurk: 'noguard', braviary: 'sheerforce', chesnaught: 'bulletproof', delphox: 'blaze',
-  talonflame: 'flamebody', aegislash: 'filter', noivern: 'clearbody', decidueye: 'overgrow', toxapex: 'regenerator',
+  talonflame: 'flamebody', aegislash: 'filter', noivern: 'clearbody', rowlet: 'overgrow', decidueye: 'overgrow', toxapex: 'regenerator',
   rillaboom: 'overgrow', inteleon: 'torrent', hatterene: 'magicbounce', grimmsnarl: 'intimidate', kingambit: 'innerfocus',
   articuno: 'pressure', zapdos: 'static', moltres: 'pressure', mew: 'synchronize', lugia: 'multiscale',
   hooh: 'regenerator', latias: 'levitate', latios: 'levitate', kyogre: 'drizzle', groudon: 'drought',
@@ -824,6 +1101,14 @@ const POKEMON_ABILITY = {
   baxcalibur: 'thermalexchange', meowscarada: 'protean', skeledirge: 'blaze', quaquaval: 'torrent', annihilape: 'defiant',
   gholdengo: 'goodasgold', tinkaton: 'moldbreaker', ceruledge: 'flashfire', armarouge: 'flashfire',
   sirfetchd: 'steadfast', dracovish: 'strongjaw',
+  lycanroc: 'steadfast', lycanrocmidnight: 'noguard', lycanrocdusk: 'toughclaws',
+  butterfree: 'serenegrace', meowth: 'technician', eevee: 'adaptability', beedrill: 'swarm', medicham: 'hugepower',
+  audino: 'regenerator', victreebel: 'chlorophyll', scolipede: 'speedboost', pyroar: 'moxie', floette: 'naturalcure',
+  malamar: 'contrary', barbaracle: 'toughclaws', dragalge: 'adaptability', drampa: 'sapsipper', falinks: 'shellarmor',
+  chimecho: 'levitate', meowstic: 'prankster', crabominable: 'ironfist', golisopod: 'shellarmor', scovillain: 'chlorophyll',
+  glimmora: 'poisonpoint', tatsugiri: 'regenerator', garbodor: 'poisonpoint', orbeetle: 'swarm', coalossal: 'flashfire',
+  flapple: 'overgrow', appletun: 'thickfat', sandaconda: 'sandstream', toxtricity: 'technician', toxtricitylow: 'technician',
+  centiskorch: 'flashfire', alcremie: 'insomnia', copperajah: 'sheerforce', duraludon: 'stalwart',
   urshifu: 'unseenfist', urshifurapid: 'unseenfist',
   kyurem: 'pressure', kyuremblack: 'teravolt', kyuremwhite: 'turboblaze',
   solgaleo: 'fullmetalbody', lunala: 'shadowshield', necrozma: 'prismarmor', necrozmadusk: 'prismarmor', necrozmadawn: 'prismarmor',
@@ -849,8 +1134,11 @@ const POKEMON_ABILITY = {
   raikou: 'pressure', entei: 'pressure', suicune: 'pressure', celebi: 'naturalcure',
   regirock: 'clearbody', regice: 'clearbody', registeel: 'clearbody', jirachi: 'serenegrace', deoxys: 'pressure',
   uxie: 'levitate', mesprit: 'levitate', azelf: 'levitate', cobalion: 'justified', terrakion: 'justified', virizion: 'justified',
-  tornadus: 'prankster', thundurus: 'prankster', meloetta: 'serenegrace', genesect: 'pressure', zygarde: 'pressure',
-  diancie: 'clearbody', hoopa: 'pressure', volcanion: 'waterabsorb', magearna: 'clearbody', marshadow: 'technician',
+  tornadus: 'prankster', thundurus: 'prankster', meloetta: 'serenegrace', genesect: 'pressure', zygarde: 'powerconstruct',
+  diancie: 'clearbody', hoopa: 'pressure', volcanion: 'waterabsorb',
+  nihilego: 'beastboost', buzzwole: 'beastboost', pheromosa: 'beastboost', xurkitree: 'beastboost', celesteela: 'beastboost',
+  kartana: 'beastboost', guzzlord: 'beastboost', poipole: 'beastboost', naganadel: 'beastboost', stakataka: 'beastboost', blacephalon: 'beastboost',
+  magearna: 'clearbody', marshadow: 'technician',
   zeraora: 'voltabsorb', melmetal: 'ironfist', glastrier: 'innerfocus', spectrier: 'cursedbody',
   calyrexice: 'innerfocus', calyrexshadow: 'pressure', fezandipiti: 'technician', ogerpon: 'defiant',
   omegamon: 'royalknight',
@@ -861,7 +1149,7 @@ const POKEMON_BY_KEY = Object.fromEntries(POKEMON.map(p => [p.key, p]));
 const TEAM_SIZE = 6;
 
 // 메가진화 (배틀당 1번, R키). id는 PokeAPI 폼 번호
-const GMAX_HINT = '배틀에서 G키로 거다이맥스. HP가 2배가 된다. 팀당 1회. 메가와는 따로다';
+const GMAX_HINT = '배틀에서 G키로 거다이맥스. HP가 2배가 되고 30초 뒤에 원래 비율로 돌아온다. 팀당 1회. 메가와는 따로다';
 function gmaxForm(id) {
   return { id, suffix: 'gmax', label: '거다이맥스', hud: '거대', tag: '거대', gmax: true, hint: GMAX_HINT };
 }
@@ -888,8 +1176,10 @@ const MEGA_DATA = {
   blaziken:   [{ id: 10050, types: ['fire', 'fighting'],  base: [80, 160, 80, 130, 80, 100],   ability: 'speedboost' }],
   gardevoir:  [{ id: 10051, types: ['psychic', 'fairy'],  base: [68, 85, 65, 165, 135, 100],   ability: 'pixilate' }],
   aggron:     [{ id: 10053, types: ['steel'],             base: [70, 140, 230, 60, 80, 50],    ability: 'filter' }],
-  absol:      [{ id: 10057, types: ['dark'],              base: [65, 150, 60, 115, 60, 115],   ability: 'magicbounce' }],
-  garchomp:   [{ id: 10058, types: ['dragon', 'ground'],  base: [108, 170, 115, 120, 95, 92],  ability: 'sandforce' }],
+  absol:      [{ id: 10057, types: ['dark'],              base: [65, 150, 60, 115, 60, 115],   ability: 'magicbounce' },
+               { id: 10307, suffix: 'Z', types: ['dark', 'ghost'], base: [65, 154, 60, 75, 60, 151], ability: 'superluck' }],
+  garchomp:   [{ id: 10058, types: ['dragon', 'ground'],  base: [108, 170, 115, 120, 95, 92],  ability: 'sandforce' },
+               { id: 10309, suffix: 'Z', types: ['dragon'], base: [108, 130, 85, 141, 85, 151], ability: 'levitate' }],
   lucario:    [{ id: 10059, types: ['fighting', 'steel'], base: [70, 145, 88, 140, 70, 112],   ability: 'adaptability' },
                { id: 10310, suffix: 'Z', types: ['fighting', 'steel'], base: [70, 100, 70, 164, 70, 151], ability: 'auraguard' }],
   latias:     [{ id: 10062, types: ['dragon', 'psychic'], base: [80, 100, 120, 140, 150, 110], ability: 'levitate' }],
@@ -940,6 +1230,61 @@ const MEGA_DATA = {
   urshifu:    [gmaxForm(10226)],
   urshifurapid:[gmaxForm(10227)],
   eternatus:  [gmaxForm(10190)],
+  glalie:     [{ id: 10074, types: ['ice'],              base: [80, 120, 80, 120, 80, 100],   ability: 'refrigerate' }],
+  sableye:    [{ id: 10066, types: ['dark', 'ghost'],     base: [50, 85, 125, 85, 115, 20],    ability: 'magicbounce' }],
+  camerupt:   [{ id: 10087, types: ['fire', 'ground'],    base: [70, 120, 100, 145, 105, 20],  ability: 'sheerforce' }],
+  banette:    [{ id: 10056, types: ['ghost'],             base: [64, 165, 75, 93, 83, 75],     ability: 'prankster' }],
+  diancie:    [{ id: 10075, types: ['rock', 'fairy'],     base: [50, 160, 110, 160, 110, 110], ability: 'magicbounce' }],
+  meganium:   [{ id: 10282, types: ['grass', 'fairy'],    base: [80, 92, 115, 143, 115, 80],   ability: 'drought' }],
+  emboar:     [{ id: 10286, types: ['fire', 'fighting'],  base: [110, 148, 75, 110, 110, 75],  ability: 'moldbreaker' }],
+  scrafty:    [{ id: 10289, types: ['dark', 'fighting'],  base: [65, 130, 135, 55, 135, 68],   ability: 'intimidate' }],
+  eelektross: [{ id: 10290, types: ['electric'],          base: [85, 145, 80, 135, 90, 80],    ability: 'levitate' }],
+  clefable:   [{ id: 10278, types: ['fairy', 'flying'],   base: [95, 80, 93, 135, 110, 70],    ability: 'magicbounce' }],
+  zygarde:    [{ id: 10301, types: ['dragon', 'ground'],  base: [216, 70, 91, 216, 85, 100],   ability: 'pressure' }],
+  raichu:     [{ id: 10304, suffix: 'X', types: ['electric'], base: [60, 135, 95, 90, 95, 110], ability: 'electricsurge' },
+               { id: 10305, suffix: 'Y', types: ['electric'], base: [60, 100, 55, 160, 80, 130], ability: 'noguard' }],
+  golurk:     [{ id: 10313, types: ['ground', 'ghost'],   base: [89, 159, 105, 70, 105, 55],   ability: 'unseenfist' }],
+  heatran:    [{ id: 10311, types: ['fire', 'steel'],     base: [91, 120, 106, 175, 141, 67],  ability: 'flashfire' }],
+  darkrai:    [{ id: 10312, types: ['dark'],              base: [70, 120, 130, 165, 130, 85],  ability: 'baddreams' }],
+  magearna:   [{ id: 10317, types: ['steel', 'fairy'],    base: [80, 125, 115, 170, 115, 95],  ability: 'clearbody' }],
+  zeraora:    [{ id: 10319, types: ['electric'],          base: [88, 157, 75, 147, 80, 153],   ability: 'voltabsorb' }],
+  baxcalibur: [{ id: 10325, types: ['dragon', 'ice'],     base: [115, 175, 117, 105, 101, 87], ability: 'thermalexchange' }],
+  drednaw:    [gmaxForm(10214)],
+  melmetal:   [gmaxForm(10208)],
+  beedrill:   [{ id: 10090, types: ['bug', 'poison'],     base: [65, 150, 40, 15, 80, 145],    ability: 'adaptability' }],
+  medicham:   [{ id: 10054, types: ['fighting', 'psychic'], base: [60, 100, 85, 80, 85, 100],  ability: 'hugepower' }],
+  audino:     [{ id: 10069, types: ['normal', 'fairy'],   base: [103, 60, 126, 80, 126, 50],   ability: 'regenerator' }],
+  victreebel: [{ id: 10279, types: ['grass', 'poison'],   base: [80, 125, 85, 135, 95, 70],    ability: 'roughskin' }],
+  scolipede:  [{ id: 10288, types: ['bug', 'poison'],     base: [60, 140, 149, 75, 99, 62],    ability: 'shellarmor' }],
+  pyroar:     [{ id: 10295, types: ['fire', 'normal'],    base: [86, 88, 92, 129, 86, 126],    ability: 'flashfire' }],
+  floette:    [{ id: 10296, types: ['fairy'],             base: [74, 85, 87, 155, 148, 102],   ability: 'fairyaura' }],
+  malamar:    [{ id: 10297, types: ['dark', 'psychic'],   base: [86, 102, 88, 98, 120, 88],    ability: 'contrary' }],
+  barbaracle: [{ id: 10298, types: ['rock', 'fighting'],  base: [72, 140, 130, 64, 106, 88],   ability: 'toughclaws' }],
+  dragalge:   [{ id: 10299, types: ['poison', 'dragon'],  base: [65, 85, 105, 132, 163, 44],   ability: 'regenerator' }],
+  drampa:     [{ id: 10302, types: ['normal', 'dragon'],  base: [78, 85, 110, 160, 116, 36],   ability: 'berserk' }],
+  falinks:    [{ id: 10303, types: ['fighting'],          base: [65, 135, 135, 70, 65, 100],   ability: 'defiant' }],
+  chimecho:   [{ id: 10306, types: ['psychic', 'steel'],  base: [75, 50, 110, 135, 120, 65],   ability: 'levitate' }],
+  meowstic:   [{ id: 10314, types: ['psychic'],           base: [74, 48, 76, 143, 101, 124],   ability: 'trace' }],
+  crabominable: [{ id: 10315, types: ['fighting', 'ice'], base: [97, 157, 122, 62, 107, 33],  ability: 'ironfist' }],
+  golisopod:  [{ id: 10316, types: ['bug', 'steel'],      base: [75, 150, 175, 70, 120, 40],   ability: 'toughclaws' }],
+  scovillain: [{ id: 10320, types: ['grass', 'fire'],     base: [65, 138, 85, 138, 85, 75],    ability: 'flashfire' }],
+  glimmora:   [{ id: 10321, types: ['rock', 'poison'],    base: [83, 90, 105, 150, 96, 101],   ability: 'adaptability' }],
+  tatsugiri:  [{ id: 10322, types: ['dragon', 'water'],   base: [68, 65, 90, 135, 125, 92],    ability: 'regenerator' }],
+  butterfree: [gmaxForm(10198)],
+  meowth:     [gmaxForm(10200)],
+  eevee:      [gmaxForm(10205)],
+  garbodor:   [gmaxForm(10207)],
+  orbeetle:   [gmaxForm(10213)],
+  coalossal:  [gmaxForm(10215)],
+  flapple:    [gmaxForm(10216)],
+  appletun:   [gmaxForm(10217)],
+  sandaconda: [gmaxForm(10218)],
+  toxtricity: [gmaxForm(10219)],
+  toxtricitylow: [gmaxForm(10228)],
+  centiskorch:[gmaxForm(10220)],
+  alcremie:   [gmaxForm(10223)],
+  copperajah: [gmaxForm(10224)],
+  duraludon:  [gmaxForm(10225)],
 };
 for (const [key, list] of Object.entries(MEGA_DATA)) {
   const sp = POKEMON_BY_KEY[key];
@@ -951,6 +1296,10 @@ for (const [key, list] of Object.entries(MEGA_DATA)) {
     hud: f.hud || '메가',
   }));
 }
+POKEMON_BY_KEY.zygarde.completeForm = {
+  id: 10120, name: '지가르데(퍼펙트폼)', types: ['dragon', 'ground'],
+  base: [216, 100, 121, 91, 95, 85], ability: 'powerconstruct',
+};
 
 // 자시안·자마젠타는 등장하면 자동으로 검왕·방패왕 폼이 된다
 const CROWN_DATA = {
@@ -1055,9 +1404,10 @@ const LOCAL_GIF = {
 };
 const spriteReady = new Map();
 
+const LOCAL_PNG = new Set([10301]);
 function spriteSources(id, back) {
   const dir = back ? 'back' : 'front';
-  if (id >= 90000) return [`assets/sprites/${dir}/${id}.png?v=base`];
+  if (id >= 90000 || LOCAL_PNG.has(id)) return [`assets/sprites/${dir}/${id}.png?v=zy1`];
   const show = `${SPRITE_REMOTE}/other/showdown/${back ? 'back/' : ''}${id}.gif`;
   const srcs = [];
   if (LOCAL_GIF[dir].has(id)) srcs.push(`assets/sprites/${dir}/${id}.gif`);
@@ -1068,7 +1418,7 @@ function spriteSources(id, back) {
 
 // 이미지 소스를 순서대로 시도한다. 한 번 성공한 주소는 다음에 바로 쓴다.
 function setSprite(img, id, back) {
-  if (id >= 90000) img.classList.add('smooth', 'model');
+  if (id >= 90000 || LOCAL_PNG.has(id)) img.classList.add('smooth', 'model');
   else img.classList.remove('smooth', 'model');
   img.decoding = 'async';
   const key = (back ? 'b' : 'f') + id;

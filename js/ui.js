@@ -15,6 +15,7 @@ const UI = {
   editTarget: 'player',
   last: null, // 마지막 배틀 설정 (다시하기용)
   typeFilter: null,
+  formFilter: null,
   search: '',
   hudSig: {},
   bossEntry: null,
@@ -86,6 +87,9 @@ function matchesDex(sp) {
   if (sp.hidden) return false;
   const view = shownForm(sp);
   const q = UI.search.trim();
+  if (UI.formFilter === 'mega' && !megaForms(sp).length) return false;
+  if (UI.formFilter === 'gmax' && !gmaxFormOf(sp)) return false;
+  if (UI.formFilter === 'z' && !Z_MOVES[sp.key]) return false;
   if (sp.egg) return eggNameQuery(q);
   if (UI.typeFilter && !view.types.includes(UI.typeFilter)) return false;
   if (!q) return true;
@@ -154,6 +158,14 @@ let detailKey = null;
 function buildTeam() {
   const chips = $('#typeChips');
   chips.innerHTML = '';
+  for (const [id, label, color] of [['mega', '메가', '#c9a227'], ['gmax', '거다이', '#e3350d'], ['z', 'Z', '#5b4bff']]) {
+    const c = document.createElement('span');
+    c.className = 'chip form' + (UI.formFilter === id ? ' on' : '');
+    c.style.background = color;
+    c.textContent = label;
+    c.onclick = () => { UI.formFilter = UI.formFilter === id ? null : id; buildTeam(); };
+    chips.appendChild(c);
+  }
   for (const t of Object.keys(TYPES)) {
     if (t === 'none') continue;
     const c = document.createElement('span');
@@ -271,6 +283,7 @@ function renderDetail(key) {
   ).join('');
   const notes = forms.map(f => f.label);
   if (gmaxFormOf(sp)) notes.push('거다이맥스');
+  if (sp.completeForm) notes.push('퍼펙트폼');
   if (Z_MOVES[sp.key]) notes.push('Z기술');
   const evoNote = notes.length ? ` · ${notes.join('·')} 가능` : '';
   const replaced = gainSlot >= 0 ? MOVES[entry.moves[gainSlot]] : null;
@@ -278,8 +291,10 @@ function renderDetail(key) {
     form && form.gainMove && replaced
       ? `R키로 ${form.label}. ${replaced.name} 칸이 ${MOVES[form.gainMove].name}로 바뀝니다. 팀당 메가 1회`
       : (form && form.hint) || (forms.length ? 'R키로 메가. 팀당 1회' : ''),
-    gmaxFormOf(sp) ? 'G키로 거다이맥스. HP 2배. 팀당 1회. 같은 포켓몬은 메가와 거다이맥스 중 하나만' : '',
+    gmaxFormOf(sp) ? `G키로 거다이맥스. HP 2배, 30초 뒤 원래 비율로 돌아온다. 기술은 다이맥스 기술로 바뀌고, 전용 기술은 ${GMAX_MOVES[sp.key] ? GMAX_MOVES[sp.key].name : '없음'}. 팀당 다이맥스와 합쳐 1회. 같은 포켓몬은 메가와 거다이맥스 중 하나만`
+      : 'G키로 다이맥스. HP 2배, 30초 뒤 원래 비율로 돌아온다. 공격 기술은 타입별 다이맥스 기술로, 변화 기술은 다이월로 바뀐다. 팀당 거다이맥스와 합쳐 1회',
     Z_MOVES[sp.key] ? `Z키로 ${MOVES[Z_MOVES[sp.key]].name}. 팀당 1회` : '',
+    sp.completeForm ? `HP가 절반 이하가 되면 ${sp.completeForm.name}로 변한다` : '',
   ].filter(Boolean).join(' · ');
   box.innerHTML = `
     <div class="dd-head">
@@ -304,7 +319,8 @@ function renderDetail(key) {
       const mv = MOVES[id];
       const locked = i === gainSlot;
       return `<div class="dd-move" style="--tc:${TYPES[mv.type].color}" data-slot="${i}"><b>${mv.name}${ti >= 0 && !locked ? ' <span class="reroll">↻</span>' : ''}</b>` +
-        `<span>${TYPES[mv.type].ko} · ${KIND_KO[mv.kind]} · 위력 ${mv.power}${mv.rollHits ? ' · 2~5발' : ''} · PP ${mv.pp}</span></div>`;
+        `<span>${TYPES[mv.type].ko} · ${KIND_KO[mv.kind] || '기술'} · 위력 ${mv.power}${mv.rollHits ? ' · 2~5발' : ''} · PP ${mv.pp}</span>` +
+        `<span class="fx">${moveText(mv)}</span></div>`;
     }).join('')}</div>`;
   box.querySelector('.pic').appendChild(spriteImg(view.id));
   if (ti >= 0) {
@@ -675,7 +691,7 @@ function cardHTML(side, label) {
   const balls = side.team.map(x => `<span class="ball${x.fainted ? ' out' : ''}"></span>`).join('');
   const mega = m.megaed ? ` <span class="mega-tag">${m.sp.tag || 'Mega'}</span>` : m.sp.primaled ? ' <span class="primal-tag">원시</span>' : '';
   const boss = m.boss ? ' <span class="boss-tag">BOSS</span>' : '';
-  return `<div class="card-top"><span>${label}</span><span class="abil-name">${ABILITIES[m.ability].name} · Lv. ${m.level}</span></div>
+  return `<div class="card-top"><span>${label}</span><span class="abil-name">${(ABILITIES[m.ability] && ABILITIES[m.ability].name) || '특성 없음'} · Lv. ${m.level}</span></div>
     <div class="card-name"><span class="nm">${m.sp.name}</span>${boss}${mega}${m.sp.types.map(typeBadge).join('')}${st}</div>
     <div class="hpbar"><div class="hplag"></div><div class="hpfill"></div></div>
     <div class="card-bot"><span class="hptext"></span><span class="balls">${balls}</span></div>`;
@@ -763,7 +779,7 @@ function updateFfaBoard() {
     const s = game.sides[i], m = s.mon;
     el.classList.toggle('you', i === (game.playerIdx || 0) && !game.opts.watch);
     el.classList.toggle('out', m.fainted);
-    setText(el._abil, `${ABILITIES[m.ability].name} · Lv.${m.level}`);
+    setText(el._abil, `${(ABILITIES[m.ability] && ABILITIES[m.ability].name) || '특성 없음'} · Lv.${m.level}`);
     setText(el._name, m.sp.name);
     const r = m.maxHp ? m.hp / m.maxHp : 0;
     const w = (r * 100) + '%';
@@ -808,7 +824,7 @@ function updateHUD() {
 
   const keys = [1, 2, 3, 4].map(i => Controls.label(Controls.codes('move' + i)[0]));
   const mb = HUD.moveBar;
-  const msig = `${p.active}|${p.mon.sp.key}|${p.mon.moves.map(sl => sl.id).join(',')}|${keys.join(',')}`;
+  const msig = `${p.active}|${p.mon.sp.key}|${p.mon.dmax ? 1 : 0}|${p.mon.gmax ? 1 : 0}|${p.mon.moves.map(sl => sl.id).join(',')}|${keys.join(',')}`;
   if (UI.hudSig.moves !== msig) {
     UI.hudSig.moves = msig;
     mb.innerHTML = '';
@@ -829,15 +845,16 @@ function updateHUD() {
   [...mb.children].forEach((el, i) => {
     const sl = p.mon.moves[i];
     const struggle = sl.pp <= 0;
-    const mv = MOVES[struggle ? 'struggle' : sl.id];
-    const judgmentPlate = !struggle && p.mon.ability === 'legendplate' && mv.id === 'judgment';
+    const mv = battleMove(p.mon, struggle ? 'struggle' : sl.id);
+    const judgmentPlate = !struggle && !mv.max && p.mon.ability === 'legendplate' && mv.id === 'judgment';
     const showType = judgmentPlate ? 'normal' : mv.type;
     const tc = judgmentPlate ? '#ffe14d' : TYPES[showType].color;
     if (el._tc !== tc) { el._tc = tc; el.style.setProperty('--tc', tc); }
     el.classList.toggle('struggle', struggle);
     setText(el._name, mv.name);
     const typeWord = judgmentPlate ? '약점맞춤' : TYPES[showType].ko;
-    setText(el._type, `${typeWord} · ${KIND_KO[mv.kind]} · ${mv.power}${mv.rollHits ? ' · 2~5발' : ''}`);
+    setText(el._type, `${typeWord} · ${KIND_KO[mv.kind] || '기술'} · ${mv.power}${mv.rollHits ? ' · 2~5발' : ''}`);
+    if (el.title !== moveText(mv)) el.title = moveText(mv);
     const ppText = struggle ? 'PP 없음' : `PP ${sl.pp}/${sl.maxPp}`;
     const ppClass = 'pp' + (struggle ? ' zero' : sl.pp <= sl.maxPp * 0.25 ? ' low' : '');
     setText(el._pp, ppText);
@@ -878,7 +895,12 @@ function updateHUD() {
   const canG = p.canGmax();
   HUD.gmax.classList.toggle('off', !canG);
   HUD.gmax.classList.toggle('ready', canG);
-  setText(HUD.gmaxLabel, !p.mon.gmax && !canG && !game.gmaxOK[p.idx] ? '사용함' : '거대');
+  const giant = p.mon.gmax || p.mon.dmax;
+  const giantWord = gmaxFormOf(p.mon.baseSp) ? '거대' : '다이';
+  const giantLeft = giant && p.mon.giantT > 0 ? ' ' + Math.ceil(p.mon.giantT) : '';
+  setText(HUD.gmaxLabel, !giant && !canG && !game.gmaxOK[p.idx] ? '사용함' : giantWord + giantLeft);
+  const gBtn = document.querySelector('#touchActs [data-act="gmax"]');
+  if (gBtn) gBtn.textContent = giant ? giantWord + giantLeft : giantWord;
   const canZ = p.canZ();
   HUD.z.classList.toggle('off', !canZ);
   HUD.z.classList.toggle('ready', canZ);
@@ -914,7 +936,7 @@ function buildHelp() {
     { ids: ['dodge'], desc: '회피 구르기 (무적 시간 있음)' },
     { ids: ['switchNext', 'switchPrev'], desc: '다음 / 이전 포켓몬으로 교체. 하단 아이콘 클릭도 됩니다' },
     { ids: ['mega'], desc: '메가진화 (팀당 1회). 오메가몬은 X진화, 네크로즈마는 울트라, 아르세우스는 레전드플레이트' },
-    { ids: ['gmax'], desc: '거다이맥스 (팀당 1회, 메가와 따로). HP가 2배가 된다. 같은 포켓몬은 메가와 거다이맥스 중 하나만' },
+    { ids: ['gmax'], desc: '다이맥스 또는 거다이맥스 (팀당 합쳐 1회, 메가와 따로). HP가 2배가 되고 30초 뒤에 원래 비율로 돌아온다. 공격 기술은 다이맥스 기술로, 변화 기술은 다이월로 바뀐다. 거다이맥스는 전용 타입이면 거다이맥스 기술이 나간다' },
     { ids: ['zmove'], desc: '전용 Z기술 (팀당 1회). 메가·거다이맥스와 따로 쓸 수 있다' },
     { ids: ['pause'], desc: '일시정지' },
   ];
@@ -1132,7 +1154,7 @@ function updateTouchPad(p) {
   }
   [...box.children].forEach((el, i) => {
     const sl = p.mon.moves[i];
-    const mv = MOVES[sl && sl.pp <= 0 ? 'struggle' : sl.id];
+    const mv = battleMove(p, sl && sl.pp <= 0 ? 'struggle' : sl.id);
     const name = el.querySelector('b'), sub = el.querySelector('small');
     if (name.textContent !== mv.name) name.textContent = mv.name;
     const pp = sl.pp <= 0 ? '발버둥' : `PP ${sl.pp}`;
