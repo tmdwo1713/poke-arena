@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Pokémon 2D Arena</title>
-  <link rel="stylesheet" href="css/style.css?v=20261015tera">
+  <link rel="stylesheet" href="css/style.css?v=20261015layer">
 </head>
 <body>
 <div id="stage">
@@ -23,11 +23,11 @@
         <button id="btnPause" class="icon-btn" title="일시정지 (Esc)">≡</button>
         <div class="arena-title"><b id="hudArena">FROSTPEAK SUMMIT</b><small id="hudMode">QUICK BATTLE</small></div>
       </div>
+      <div class="card" id="cardP"></div>
       <div id="timer">00:00</div>
+      <div class="card right" id="cardC"></div>
       <div class="tb-right"><span id="hudWeather"></span><span class="live-dot"></span> LIVE</div>
     </div>
-    <div class="card" id="cardP"></div>
-    <div class="card right" id="cardC"></div>
     <div id="bossBar" class="hidden">
       <div class="boss-kicker">BOSS</div>
       <div id="bossName"></div>
@@ -196,11 +196,14 @@
   <!-- 조작법 -->
   <div id="screen-help" class="screen hidden">
     <div class="panel help-panel">
-      <h2>조작법</h2>
-      <div class="row help-actions">
-        <button id="btnHelpKeys">키 바꾸기</button>
-        <button data-go="menu" class="primary">확인</button>
+      <div class="help-head">
+        <h2>조작법</h2>
+        <div class="row help-actions">
+          <button id="btnHelpKeys">키 바꾸기</button>
+          <button data-go="menu" class="primary">뒤로</button>
+        </div>
       </div>
+      <div class="help-scroll">
       <table class="keys"><tbody id="helpKeys"></tbody></table>
       <ul class="tips">
         <li>휴대폰에서도 쓸 수 있습니다. 메뉴는 화면을 누르면 되고, 배틀에서는 스틱으로 이동하고 기술 버튼을 누릅니다. 세로 화면은 아래 조작판이 나오고, 가로 화면이 필드를 더 크게 보여 줍니다.</li>
@@ -223,6 +226,7 @@
         <li>제한 시간은 5분. 시간이 다 되면 남은 포켓몬 수와 HP로 판정합니다.</li>
         <li>팀 편성 검색창에 이름을 입력해야 고를 수 있는 숨은 포켓몬이 있습니다.</li>
       </ul>
+      </div>
     </div>
   </div>
 
@@ -279,9 +283,9 @@
   </div>
 </div>
 
-<script src="js/data.js?v=20261015tera"></script>
-<script src="js/audio.js?v=20261015tera"></script>
-<script src="js/game.js?v=20261015tera"></script>
-<script src="js/ui.js?v=20261015tera"></script>
+<script src="js/data.js?v=20261015hud"></script>
+<script src="js/audio.js?v=20261015hud"></script>
+<script src="js/game.js?v=20261015hud"></script>
+<script src="js/ui.js?v=20261015hud"></script>
 </body>
 </html>

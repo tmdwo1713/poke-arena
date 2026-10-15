@@ -43,6 +43,7 @@ body.mobile-layout #playfield {
   width: 1280px;
   height: 720px;
 }
+#world { z-index: 1; }
 #sprites { pointer-events: none; }
 
 img.mon {
@@ -274,8 +275,11 @@ button:disabled { opacity: .45; cursor: default; }
 .trainer .mons img { image-rendering: pixelated; max-height: 44px; max-width: 54px; }
 
 /* ---------------- 조작법 ---------------- */
-.help-panel { width: 720px; max-height: 680px; overflow: auto; }
-.help-actions { margin-top: 0; justify-content: flex-start; }
+.help-panel { width: 720px; }
+.help-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; }
+.help-head h2 { margin: 0; }
+.help-actions { margin-top: 0; justify-content: flex-end; flex: none; }
+.help-scroll { overflow: auto; min-height: 0; margin-top: 10px; flex: 1 1 auto; }
 .keys { width: 100%; border-collapse: collapse; margin-top: 8px; }
 .keys td { padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,.06); }
 .keys td:first-child { width: 340px; }
@@ -294,34 +298,34 @@ kbd {
 .tips { line-height: 1.7; color: #c7d4ef; font-size: 14px; padding-left: 20px; }
 
 /* ---------------- HUD ---------------- */
-#hud { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+#hud { position: absolute; inset: 0; pointer-events: none; z-index: 20; display: flex; flex-direction: column; }
 #hud button, #hud .clickable { pointer-events: auto; }
 
 #topbar {
-  position: absolute; left: 0; right: 0; top: 0; height: 42px; display: flex; align-items: center; justify-content: space-between;
-  padding: 0 14px; background: linear-gradient(180deg, rgba(8,12,26,.88), rgba(8,12,26,.55)); border-bottom: 1px solid rgba(255,255,255,.08);
+  position: relative; flex: none; min-height: 42px; display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; background: linear-gradient(180deg, #121a30, #0e1526); border-bottom: 1px solid rgba(255,255,255,.08);
 }
-.tb-left { display: flex; align-items: center; gap: 10px; width: 320px; }
+.tb-left { display: flex; align-items: center; gap: 10px; width: 168px; flex: none; }
 .icon-btn { padding: 2px 10px; font-size: 18px; border-radius: 7px; }
 .arena-title b { display: block; font-size: 13px; letter-spacing: 1px; }
 .arena-title small { display: block; font-size: 9px; color: #93a6cc; letter-spacing: 1px; }
 #timer { font-size: 20px; font-weight: 900; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
 #timer.urgent { color: #ff6b6b; animation: blink .8s infinite; }
-.tb-right { width: 320px; text-align: right; font-size: 12px; color: #9fe3b0; font-weight: 800; }
+.tb-right { width: 148px; flex: none; text-align: right; font-size: 12px; color: #9fe3b0; font-weight: 800; }
 #hudWeather { margin-right: 14px; font-size: 13px; }
 .abil-name { color: #cdb8ff; }
 .live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; margin-right: 4px; animation: blink 1.2s infinite; }
 @keyframes blink { 50% { opacity: .25; } }
 
 .card {
-  position: absolute; top: 50px; left: 12px; width: 300px; padding: 9px 12px 10px;
-  background: rgba(10,15,30,.82); border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  position: relative; top: auto; left: auto; flex: 1 1 0; width: auto; min-width: 0; padding: 4px 8px 5px;
+  background: #1a2440; border: 1px solid rgba(255,255,255,.12); border-radius: 10px;
 }
-.card.right { left: auto; right: 12px; }
-.card-top { display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; color: #93a6cc; letter-spacing: 1px; }
-.card-name { display: flex; align-items: center; gap: 6px; margin: 3px 0 5px; }
-.card-name .nm { font-size: 18px; font-weight: 900; margin-right: 2px; }
+.card.right { left: auto; right: auto; }
+.card-top { display: flex; justify-content: space-between; gap: 6px; font-size: 9px; font-weight: 800; color: #93a6cc; letter-spacing: .4px; }
+.card-top .abil-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-name { display: flex; align-items: center; gap: 4px; margin: 1px 0 3px; min-width: 0; overflow: hidden; }
+.card-name .nm { font-size: 14px; font-weight: 900; margin-right: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .st-badge { padding: 1px 6px; border-radius: 5px; font-size: 10px; font-weight: 900; color: #111; }
 .hpbar { height: 9px; border-radius: 5px; background: rgba(255,255,255,.1); overflow: hidden; position: relative; }
 .hpfill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; transition: width .15s, background .3s; }
@@ -332,7 +336,7 @@ kbd {
 .ball.out { background: #555; opacity: .5; }
 
 #bottom {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 86px; display: flex; align-items: center; gap: 14px; padding: 0 14px;
+  position: relative; margin-top: auto; flex: none; height: 86px; display: flex; align-items: center; gap: 14px; padding: 0 14px;
   background: linear-gradient(0deg, rgba(8,12,26,.92), rgba(8,12,26,.6));
   border-top: 1px solid rgba(255,255,255,.08);
 }
@@ -422,7 +426,7 @@ kbd {
 #resTitle.lose { color: #ff8a8a; }
 
 #ffaBoard {
-  position: absolute; top: 46px; left: 10px; right: 10px;
+  position: absolute; top: 78px; left: 10px; right: 10px;
   display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
 }
 .ffa-card {
@@ -438,7 +442,7 @@ kbd {
 #resStats.ffa-rank div { display: flex; justify-content: space-between; align-items: center; }
 
 #bossBar {
-  position: absolute; top: 48px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 78px; left: 50%; transform: translateX(-50%);
   width: 420px; text-align: center; pointer-events: none;
   background: rgba(10, 15, 30, .82); border: 2px solid #ffe14d; border-radius: 12px;
   padding: 6px 12px 8px; box-shadow: 0 0 18px rgba(255, 210, 60, .28);
@@ -517,6 +521,14 @@ body.mode-ffa #touchActs [data-act="switch"], body.mode-ffa #touchTeam { display
   max-width: calc(100vw - 16px);
   max-height: calc(100dvh - 16px);
 }
+.help-panel, .keys-panel {
+  max-height: 640px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.keys-panel #keyRows { overflow: auto; min-height: 0; }
+.keys-panel > .row { flex: none; }
 @media (max-width: 860px) {
   .screen { align-items: safe center; overflow: auto; padding: 12px 0 16px; }
   .logo-top { font-size: 18px; letter-spacing: 4px; }
