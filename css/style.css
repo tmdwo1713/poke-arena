@@ -251,7 +251,9 @@ button:disabled { opacity: .45; cursor: default; }
 .arena-card small { color: #9fb0d0; }
 .pre-row { display: grid; grid-template-columns: 260px 1fr 1fr; gap: 20px; }
 #diffBtns, #ffaDiffBtns, #bossDiffBtns { display: flex; flex-direction: column; gap: 6px; }
-#diffBtns button.on, #ffaDiffBtns button.on, #bossDiffBtns button.on { border-color: #ffcb3d; background: linear-gradient(180deg, #3d4a2a, #2a331c); }
+#diffBtns button.on, #ffaDiffBtns button.on, #bossDiffBtns button.on, .fmt-row button.on { border-color: #ffcb3d; background: linear-gradient(180deg, #3d4a2a, #2a331c); }
+.fmt-row { display: flex; gap: 6px; }
+.fmt-row button { flex: 1; }
 .team-preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .tp { text-align: center; background: rgba(255,255,255,.04); border-radius: 10px; padding: 4px; }
 .tp .pic { height: 50px; display: flex; align-items: flex-end; justify-content: center; }
@@ -347,6 +349,9 @@ kbd {
 }
 .tm img { image-rendering: pixelated; width: 40px; height: 30px; object-fit: contain; }
 .tm.active { border-color: #4fb3ff; background: rgba(79,179,255,.15); }
+.tm.ally { border-color: #7dffb2; background: rgba(125,255,178,.12); }
+.partner { margin-top: 2px; font-size: 10px; font-weight: 800; color: #9fd0ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card.right .partner { color: #ffb4b4; }
 .tm.fainted { filter: grayscale(1); opacity: .4; cursor: default; }
 .tm .mini { position: absolute; left: 3px; right: 3px; bottom: 2px; height: 3px; background: rgba(0,0,0,.5); border-radius: 2px; overflow: hidden; }
 .tm .mini i { display: block; height: 100%; }

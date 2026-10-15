@@ -349,6 +349,10 @@ class Side {
 
   get mon() { return this.team[this.active]; }
   get foe() { return this.g.nearestFoe(this); }
+  burstSlot() { return this.party == null ? this.idx : this.party; }
+  fielded(i) {
+    return this.g.sides.some(s => s !== this && s.team === this.team && s.active === i && !s.mon.fainted && s.faintT <= 0);
+  }
   get el() { return this.back ? this.elB : this.elF; }
   aliveCount() { return this.team.filter(m => !m.fainted).length; }
   spriteScale() {
@@ -458,10 +462,10 @@ class Side {
       const n = this.team.length;
       for (let k = 1; k < n; k++) {
         const i = (this.active + k * dir + n * k) % n;
-        if (!this.team[i].fainted) { to = i; break; }
+        if (!this.team[i].fainted && !this.fielded(i)) { to = i; break; }
       }
     }
-    if (to === undefined || to === this.active || !this.team[to] || this.team[to].fainted) return false;
+    if (to === undefined || to === this.active || !this.team[to] || this.team[to].fainted || this.fielded(to)) return false;
     const f = this.foe;
     if (this.trapT > 0 && !battleTypes(this.mon).includes('ghost')) {
       this.g.text(this.x, this.y - this.spriteH() - 20, '빠져나갈 수 없다!', '#735797', 15, 1);
@@ -484,13 +488,13 @@ class Side {
   canMega() { return this.canBurst('mega'); }
   canGmax() { return this.canBurst('gmax'); }
   canTera() {
-    if (this.cpuLimited('tera') || !this.g.teraOK[this.idx]) return false;
+    if (this.cpuLimited('tera') || !this.g.teraOK[this.burstSlot()]) return false;
     if (this.faintT > 0 || this.mon.fainted || this.switching > 0 || this.mon.teraed) return false;
     return !!(this.mon.teraType && TYPES[this.mon.teraType] && this.mon.teraType !== 'none');
   }
   cpuLimited(kind) { return !!(this.ai && this.mon.limit && this.mon.limit !== kind); }
   canZ() {
-    if (this.cpuLimited('z') || !this.g.zOK[this.idx]) return false;
+    if (this.cpuLimited('z') || !this.g.zOK[this.burstSlot()]) return false;
     if (this.faintT > 0 || this.mon.fainted || this.switching > 0 || this.mon.transformed) return false;
     if (jogressPartner(this)) return true;
     return !!Z_MOVES[this.mon.baseSp.key];
@@ -499,8 +503,8 @@ class Side {
     if (this.cpuLimited(kind)) return false;
     if (this.mon.transformed || this.mon.megaed || this.mon.gmax || this.mon.dmax || this.mon.complete) return false;
     if (this.faintT > 0 || this.mon.fainted || this.switching > 0) return false;
-    if (kind === 'mega') return this.g.megaOK[this.idx] && megaForms(this.mon.baseSp).length > 0;
-    if (kind === 'gmax') return this.g.gmaxOK[this.idx];
+    if (kind === 'mega') return this.g.megaOK[this.burstSlot()] && megaForms(this.mon.baseSp).length > 0;
+    if (kind === 'gmax') return this.g.gmaxOK[this.burstSlot()];
     return false;
   }
 
@@ -511,7 +515,7 @@ class Side {
     if (!this.canTera()) return false;
     const t = this.mon.teraType;
     this.mon.teraed = true;
-    this.g.teraOK[this.idx] = false;
+    this.g.teraOK[this.burstSlot()] = false;
     const col = TYPES[t].color;
     this.g.banner(`${TYPES[t].ko} 테라스탈!`, true);
     this.g.burst(this.x, this.y - LIFT, col, 26, 280);
@@ -538,9 +542,9 @@ class Side {
       this.mon.hp = Math.max(1, this.mon.hp * 2);
       this.mon.gmax = true;
       this.mon.giantT = GIANT_TIME;
-      this.g.gmaxOK[this.idx] = false;
+      this.g.gmaxOK[this.burstSlot()] = false;
     } else {
-      this.g.megaOK[this.idx] = false;
+      this.g.megaOK[this.burstSlot()] = false;
     }
     this.mon.megaed = true;
     if (form.ability === 'legendplate') {
@@ -570,7 +574,7 @@ class Side {
     this.mon.dmax = true;
     this.mon.megaed = true;
     this.mon.giantT = GIANT_TIME;
-    this.g.gmaxOK[this.idx] = false;
+    this.g.gmaxOK[this.burstSlot()] = false;
     this.applySprite();
     this.g.burst(this.x, this.y - LIFT, '#ff4b6a', 26, 300);
     this.g.effects.push({ type: 'ring', x: this.x, y: this.y, r: 110, color: '#ff4b6a', life: 0.55, max: 0.55 });
@@ -606,7 +610,7 @@ class Side {
     if (jogressPartner(this)) return this.jogress();
     const id = zMoveId(this.mon);
     const mv = MOVES[id];
-    this.g.zOK[this.idx] = false;
+    this.g.zOK[this.burstSlot()] = false;
     this.mon.zUsed = true;
     this.zPose = Z_POSE;
     this.zMove = id;
@@ -632,6 +636,13 @@ class Side {
     const mon = this.mon;
     partner.hp = 0;
     partner.fainted = true;
+    const holder = this.g.sides.find(sd => sd !== this && sd.mon === partner);
+    if (holder && holder.faintT <= 0) {
+      holder.faintT = 1.2;
+      holder.cast = null;
+      holder.dash = null;
+      holder.zPose = 0;
+    }
     mon.baseSp = sp;
     mon.sp = sp;
     mon.level = 100;
@@ -655,7 +666,7 @@ class Side {
     mon.transformed = false;
     mon.zUsed = true;
     mon.flashFire = false;
-    this.g.zOK[this.idx] = false;
+    this.g.zOK[this.burstSlot()] = false;
     this.cast = null;
     this.dash = null;
     this.applySprite();
@@ -710,13 +721,15 @@ class Side {
     this.g.effects.push({ type: 'pokeball', x: this.x, y: this.y, life: 0.45, max: 0.45 });
     const name = this.mon.sp.name;
     if (this.g.ffa) this.g.banner(`${name} 등장!`);
-    else this.g.banner(this.idx === 0 ? `가랏! ${name}!` : `상대는 ${name}${josa(name, '을', '를')} 내보냈다!`);
+    else this.g.banner(this.party === 0 ? `가랏! ${name}!` : `상대는 ${name}${josa(name, '을', '를')} 내보냈다!`);
     this.g.onEntry(this);
   }
 
   update(dt) {
     const g = this.g;
-    for (const mon of this.team) for (const sl of mon.moves) if (sl.cd > 0) sl.cd -= dt;
+    if (g.sides.find(s => s.team === this.team) === this) {
+      for (const mon of this.team) for (const sl of mon.moves) if (sl.cd > 0) sl.cd -= dt;
+    }
     this.dodgeCd -= dt; this.iframes -= dt; this.switchCd -= dt; this.gcd -= dt;
     this.struggleCd -= dt; this.flash -= dt;
     if (this.stun > 0) this.stun -= dt;
@@ -724,7 +737,7 @@ class Side {
     if (this.faintT > 0) {
       this.faintT -= dt;
       if (this.faintT <= 0) {
-        const next = this.team.findIndex(x => !x.fainted);
+        const next = this.team.findIndex((x, i) => !x.fainted && !this.fielded(i));
         if (next >= 0) this.sendOut(next);
       }
       return;
@@ -1008,7 +1021,7 @@ class AI {
   choose() {
     const s = this.s, f = s.foe, m = s.mon;
     if (!f) { this.intent = -1; return; }
-    const alive = s.team.map((x, i) => i).filter(i => i !== s.active && !s.team[i].fainted);
+    const alive = s.team.map((x, i) => i).filter(i => i !== s.active && !s.team[i].fainted && !s.fielded(i));
 
     if (s.canMega() && s.canGmax()) {
       if (Math.random() < 0.55) s.megaEvolve();
@@ -1133,6 +1146,7 @@ class Game {
     this.playerIdx = 0;
     this.ffa = !!opts.ffa;
     this.boss = !!opts.boss;
+    this.doubles = !!opts.doubles && !this.ffa && !this.boss;
     this.sides = [];
     let allMons;
     if (opts.ffa) {
@@ -1141,7 +1155,11 @@ class Game {
       this.gmaxOK = roster.map(() => true);
       this.zOK = roster.map(() => true);
       this.teraOK = roster.map(() => true);
-      roster.forEach((m, i) => this.sides.push(new Side(this, i, [m], i !== 0 || !!opts.watch, opts.diff)));
+      roster.forEach((m, i) => {
+        const side = new Side(this, i, [m], i !== 0 || !!opts.watch, opts.diff);
+        side.party = i;
+        this.sides.push(side);
+      });
       allMons = roster;
     } else {
       const pTeam = opts.playerTeam.map(k => makeMon(k, opts.playerLevel || 50));
@@ -1150,8 +1168,18 @@ class Game {
       this.gmaxOK = [true, true];
       this.zOK = [true, true];
       this.teraOK = [true, true];
-      this.sides.push(new Side(this, 0, pTeam, !!opts.watch, opts.diff));
-      this.sides.push(new Side(this, 1, cTeam, true, opts.diff));
+      if (this.doubles) {
+        const pCount = Math.min(2, pTeam.length);
+        const cCount = Math.min(2, cTeam.length);
+        for (let i = 0; i < pCount; i++) this.addDouble(pTeam, 0, i, !!opts.watch || i > 0, opts.diff);
+        for (let i = 0; i < cCount; i++) this.addDouble(cTeam, 1, i, true, opts.diff);
+      } else {
+        const pSide = new Side(this, 0, pTeam, !!opts.watch, opts.diff);
+        const cSide = new Side(this, 1, cTeam, true, opts.diff);
+        pSide.party = 0;
+        cSide.party = 1;
+        this.sides.push(pSide, cSide);
+      }
       allMons = [...pTeam, ...cTeam];
     }
     const warm = () => {
@@ -1195,6 +1223,33 @@ class Game {
     this.banner('READY...', true);
     Sound.play('start');
     for (const s of this.sides) this.onEntry(s);
+  }
+
+  addDouble(team, party, slot, cpu, diff) {
+    const side = new Side(this, this.sides.length, team, cpu, diff);
+    side.party = party;
+    side.slot = slot;
+    const B = ARENA_BOUNDS;
+    const left = party === 0;
+    const pair = Math.min(2, team.length) > 1;
+    side.x = left ? B.x + (pair && slot ? 310 : 160) : B.x + B.w - (pair && slot ? 310 : 160);
+    side.y = pair ? B.y + (slot ? B.h * 0.7 : B.h * 0.3) : B.y + B.h / 2;
+    side.face = [left ? 1 : -1, 0];
+    if (slot > 0) {
+      side.active = slot;
+      side.applySprite();
+    }
+    this.sides.push(side);
+  }
+
+  focusSide(side) {
+    if (!side || this.opts.watch || side.party !== 0 || side.mon.fainted || side.faintT > 0) return;
+    const cur = this.playerSide();
+    if (cur === side) return;
+    if (cur) cur.ai = new AI(cur, this.opts.diff);
+    side.ai = null;
+    side.input.x = side.input.y = 0;
+    this.playerIdx = side.idx;
   }
 
   destroy() {
@@ -1338,7 +1393,7 @@ class Game {
     return this.sides[this.playerIdx || 0];
   }
   enemies(s) {
-    return this.sides.filter(o => o !== s && this.targetable(o) && o.switching <= 0);
+    return this.sides.filter(o => o !== s && o.party !== s.party && this.targetable(o) && o.switching <= 0);
   }
   livingSides() {
     return this.sides.filter(s => s.aliveCount() > 0);
@@ -1346,7 +1401,7 @@ class Game {
   nearestFoe(s) {
     let best = null, bd = Infinity;
     for (const o of this.sides) {
-      if (o === s || !this.targetable(o)) continue;
+      if (o === s || o.party === s.party || !this.targetable(o)) continue;
       const d = Math.hypot(o.x - s.x, o.y - s.y);
       if (d < bd) { bd = d; best = o; }
     }
@@ -1519,8 +1574,11 @@ class Game {
       this.finish(ranked[0].idx);
       return;
     }
-    const [a, b] = this.sides;
-    this.finish(score(a) > score(b) ? 0 : 1);
+    const scoreParty = party => {
+      const team = (this.sides.find(s => s.party === party) || {}).team || [];
+      return team.filter(m => !m.fainted).length * 1000 + team.reduce((a, m) => a + m.hp / Math.max(1, m.maxHp), 0);
+    };
+    this.finish(scoreParty(0) > scoreParty(1) ? 0 : 1);
   }
 
   targetable(s) {
@@ -2463,7 +2521,7 @@ class Game {
         if (left[0]) left[0].place = 1;
         this.finish(left[0] ? left[0].idx : t.idx);
       }
-    } else if (t.aliveCount() === 0) this.finish(1 - t.idx);
+    } else if (t.aliveCount() === 0) this.finish((t.party == null ? t.idx : t.party) === 0 ? 1 : 0);
   }
 
   finish(winner) {
@@ -2499,8 +2557,10 @@ class Game {
         ranking, ko: this.sides[0].ko, dealt: this.sides[0].dealt, taken: this.sides.slice(1).reduce((a, s) => a + s.dealt, 0),
       };
     }
-    const [p, c] = this.sides;
-    return { win: this.winner === 0, time: this.time, ko: p.ko, lost: c.ko, dealt: p.dealt, taken: c.dealt };
+    const of = party => this.sides.filter(s => s.party === party);
+    const sum = (list, key) => list.reduce((a, s) => a + (s[key] || 0), 0);
+    const ps = of(0), cs = of(1);
+    return { win: this.winner === 0, time: this.time, ko: sum(ps, 'ko'), lost: sum(cs, 'ko'), dealt: sum(ps, 'dealt'), taken: sum(cs, 'dealt') };
   }
 
   /* ---------------- world objects ---------------- */
@@ -2845,7 +2905,7 @@ class Game {
       c.fillStyle = '#000';
       c.beginPath(); c.ellipse(s.x, s.y + (model ? 6 : 2), rx, ry, 0, 0, Math.PI * 2); c.fill();
       c.globalAlpha = 0.8 * a;
-      c.strokeStyle = s.mon.boss ? '#ffd24a' : (s.idx === 0 ? '#4fb3ff' : '#ff5a5a');
+      c.strokeStyle = s.mon.boss ? '#ffd24a' : (s.party === 0 ? '#4fb3ff' : '#ff5a5a');
       c.lineWidth = s.mon.boss ? 3 : 2;
       c.beginPath(); c.ellipse(s.x, s.y + 2, s.r * 1.3, s.r * 0.48, 0, 0, Math.PI * 2); c.stroke();
       c.globalAlpha = 1;
@@ -3463,7 +3523,7 @@ class Game {
     c.fillRect(s.x - bw / 2 - 1, by - 1, bw + 2, 7);
     c.fillStyle = ratio > 0.5 ? '#4ade80' : ratio > 0.2 ? '#facc15' : '#ef4444';
     c.fillRect(s.x - bw / 2, by, bw * ratio, 5);
-    c.fillStyle = m.boss ? '#ffd24a' : this.ffa ? FFA_COLORS[s.idx % FFA_COLORS.length] : (s.idx === 0 ? '#4fb3ff' : '#ff5a5a');
+    c.fillStyle = m.boss ? '#ffd24a' : this.ffa ? FFA_COLORS[s.idx % FFA_COLORS.length] : (s.party === 0 ? '#4fb3ff' : '#ff5a5a');
     c.beginPath();
     c.moveTo(s.x - 5, by - 12); c.lineTo(s.x + 5, by - 12); c.lineTo(s.x, by - 5);
     c.closePath(); c.fill();

@@ -11,6 +11,7 @@ const UI = {
   progress: parseInt(localStorage.getItem('pa_progress') || '0', 10),
   arena: 'frost',
   diff: 0.55,
+  doubles: localStorage.getItem('pa_doubles') === '1',
   cpuTeam: loadCpuTeam(),
   editTarget: 'player',
   last: null, // 마지막 배틀 설정 (다시하기용)
@@ -414,15 +415,36 @@ function buildPre() {
   }
   teamPreview($('#myPreview'), UI.team);
   teamPreview($('#cpuPreview'), UI.cpuTeam);
+  const fmt = $('#fmtBtns');
+  fmt.innerHTML = '';
+  for (const [on, label, desc] of [[false, '싱글', '1마리씩'], [true, '더블', '2마리씩']]) {
+    const b = document.createElement('button');
+    b.className = UI.doubles === on ? 'on' : '';
+    b.innerHTML = `${label} <small style="opacity:.7;font-weight:400">· ${desc}</small>`;
+    b.onclick = () => {
+      UI.doubles = on;
+      localStorage.setItem('pa_doubles', on ? '1' : '0');
+      Sound.play('select');
+      buildPre();
+    };
+    fmt.appendChild(b);
+  }
+  $('#preHint').textContent = UI.doubles
+    ? '더블은 양쪽 2마리 이상이 필요합니다. 2마리씩 나와 같은 편으로 싸우고, 1번을 직접 조작합니다. 아래 팀 칸의 파트너를 누르면 그 포켓몬을 조작합니다. 메가·다이맥스·Z·테라는 편마다 1회입니다.'
+    : 'CPU끼리 관전할 때 포켓몬마다 메가·거다이맥스·Z·테라 중 하나만 쓰게 하려면, 팀 편성 상세에서 CPU 제한을 고르세요. 직접 조작할 때는 제한되지 않습니다.';
 }
 
 $('#btnReroll').onclick = () => { UI.cpuTeam = randomTeam(); saveCpuTeam(); Sound.play('select'); buildPre(); };
 $('#btnEditTeam').onclick = () => openTeam('player', 'pre');
 $('#btnEditCpu').onclick = () => openTeam('cpu', 'pre');
+function quickReady() {
+  if (UI.team.length < (UI.doubles ? 2 : 1)) { openTeam('player', 'pre'); return false; }
+  if (UI.cpuTeam.length < (UI.doubles ? 2 : 1)) { openTeam('cpu', 'pre'); return false; }
+  return true;
+}
 $('#btnStart').onclick = () => {
-  if (!UI.team.length) { openTeam('player', 'pre'); return; }
-  if (!UI.cpuTeam.length) { openTeam('cpu', 'pre'); return; }
-  startBattle({ mode: 'quick', arena: UI.arena, diff: UI.diff, playerTeam: UI.team.slice(), cpuTeam: UI.cpuTeam.slice(), cpuLevel: 50, cpuName: 'CPU TRAINER' });
+  if (!quickReady()) return;
+  startBattle({ mode: 'quick', doubles: UI.doubles, arena: UI.arena, diff: UI.diff, playerTeam: UI.team.slice(), cpuTeam: UI.cpuTeam.slice(), cpuLevel: 50, cpuName: 'CPU TRAINER' });
 };
 $('#btnWatch').onclick = () => startWatch();
 
@@ -496,8 +518,10 @@ $('#btnBossStart').onclick = () => {
 };
 
 function startWatch() {
-  const playerTeam = UI.team.length ? UI.team.slice() : randomTeam();
-  startBattle({ mode: 'quick', watch: true, arena: UI.arena, diff: UI.diff, playerTeam, cpuTeam: UI.cpuTeam.slice(), cpuLevel: 50, cpuName: 'CPU TRAINER' });
+  let playerTeam = UI.team.length ? UI.team.slice() : randomTeam();
+  if (UI.doubles && playerTeam.length < 2) playerTeam = randomTeam();
+  if (UI.doubles && UI.cpuTeam.length < 2) { UI.cpuTeam = randomTeam(); saveCpuTeam(); }
+  startBattle({ mode: 'quick', doubles: UI.doubles, watch: true, arena: UI.arena, diff: UI.diff, playerTeam, cpuTeam: UI.cpuTeam.slice(), cpuLevel: 50, cpuName: 'CPU TRAINER' });
 }
 
 /* ---------------- 챌린지 ---------------- */
@@ -550,6 +574,7 @@ function startBattle(cfg) {
   $('#hudMode').textContent = cfg.boss ? 'BOSS BATTLE'
     : cfg.ffa ? (cfg.watch ? 'FFA SPECTATE' : 'BATTLE ROYALE')
     : cfg.mode === 'challenge' ? `CHALLENGE ${cfg.stage + 1} / ${TRAINERS.length}`
+    : cfg.doubles ? (cfg.watch ? 'DOUBLE SPECTATE' : 'DOUBLE BATTLE')
     : cfg.watch ? 'SPECTATE' : 'QUICK BATTLE';
   document.body.classList.toggle('mode-ffa', !!cfg.ffa);
   $('#ffaBoard').classList.toggle('hidden', !cfg.ffa);
@@ -686,13 +711,26 @@ function buildMoveBar() {
     el.appendChild(img);
     el.insertAdjacentHTML('beforeend', `<span class="k">${i + 1}</span><div class="mini"><i></i></div>`);
     tagTeamSlot(el);
-    el.onclick = () => { if (game) game.sides[0].requestSwitch(i); };
+    el.onclick = () => commandSlot(i);
     tb.appendChild(el);
   });
 }
 
+function commandSlot(i) {
+  if (!game) return;
+  const p = game.playerSide() || game.sides[0];
+  const ally = game.sides.find(s => s.team === p.team && s !== p && s.active === i && !s.mon.fainted && s.faintT <= 0);
+  if (ally && game.doubles && !game.opts.watch) game.focusSide(ally);
+  else p.requestSwitch(i);
+}
+function allyOf(side) {
+  if (!game || !game.doubles) return null;
+  return game.sides.find(o => o !== side && o.party === side.party && !o.mon.fainted) || null;
+}
 function cardHTML(side, label) {
   const m = side.mon;
+  const ally = allyOf(side);
+  const partner = ally ? `<div class="partner">파트너 ${ally.mon.sp.name}</div>` : '';
   const st = m.status ? `<span class="st-badge" style="background:${STATUS[m.status].color}">${STATUS[m.status].ko}</span>` : '';
   const balls = side.team.map(x => `<span class="ball${x.fainted ? ' out' : ''}"></span>`).join('');
   const mega = m.megaed ? ` <span class="mega-tag">${m.sp.tag || 'Mega'}</span>` : m.sp.primaled ? ' <span class="primal-tag">원시</span>' : '';
@@ -701,6 +739,7 @@ function cardHTML(side, label) {
   return `<div class="card-top"><span>${label}</span><span class="abil-name">${(ABILITIES[m.ability] && ABILITIES[m.ability].name) || '특성 없음'} · Lv. ${m.level}</span></div>
     <div class="card-name"><span class="nm">${m.sp.name}</span>${boss}${mega}${tera}${battleTypes(m).map(typeBadge).join('')}${st}</div>
     <div class="hpbar"><div class="hplag"></div><div class="hpfill"></div></div>
+    ${partner}
     <div class="card-bot"><span class="hptext"></span><span class="balls">${balls}</span></div>`;
 }
 
@@ -750,7 +789,8 @@ function bindHUD() {
 
 function updateCard(el, side, label, sigKey) {
   const m = side.mon;
-  const sig = `${side.active}|${m.status}|${m.ability}|${m.sp.key}|${battleTypes(m).join(',')}|${m.teraed ? 1 : 0}|${m.sp.id}|${m.megaed}|${side.team.map(x => x.fainted ? 1 : 0).join('')}`;
+  const ally = allyOf(side);
+  const sig = `${side.active}|${m.status}|${m.ability}|${m.sp.key}|${battleTypes(m).join(',')}|${m.teraed ? 1 : 0}|${m.sp.id}|${m.megaed}|${side.team.map(x => x.fainted ? 1 : 0).join('')}|${ally ? ally.idx + ':' + ally.active + ':' + ally.mon.sp.key : ''}`;
   if (UI.hudSig[sigKey] !== sig) {
     UI.hudSig[sigKey] = sig;
     el.innerHTML = cardHTML(side, label);
@@ -818,7 +858,8 @@ function updateHUD() {
   if (game.ffa) updateFfaBoard();
   else {
     updateCard(HUD.cardP, p, UI.last.watch ? 'CPU 1' : 'PLAYER', 'p');
-    updateCard(HUD.cardC, game.sides[1], game.boss ? 'BOSS' : (UI.last.cpuName || 'CPU TRAINER'), 'c');
+    const cpu = game.sides.find(s => s.party === 1 && game.targetable(s)) || game.sides.find(s => s.party === 1) || game.sides[1];
+    updateCard(HUD.cardC, cpu, game.boss ? 'BOSS' : (UI.last.cpuName || 'CPU TRAINER'), 'c');
     if (game.boss) {
       const boss = game.sides[1].mon;
       const phase = boss.phase2 ? ' · 폭주' : boss.phase1 ? ' · 분노' : '';
@@ -878,7 +919,9 @@ function updateHUD() {
     const side = game.ffa ? game.sides[i] : null;
     const m = game.ffa ? side.team[0] : p.team[i];
     if (!m) return;
+    const allySlots = !game.ffa && game.doubles ? game.sides.filter(s => s.team === p.team && s !== p && !s.mon.fainted).map(s => s.active) : [];
     el.classList.toggle('active', game.ffa ? (i === (game.playerIdx || 0) && !game.opts.watch) : i === p.active);
+    el.classList.toggle('ally', allySlots.includes(i) && i !== p.active);
     el.classList.toggle('fainted', m.fainted);
     const img = el._img;
     const id = String(m.sp.id);
@@ -902,26 +945,26 @@ function updateHUD() {
   const picked = megaForms(p.mon.baseSp)[p.mon.megaIdx || 0];
   const evoWord = (picked && picked.hud) || '메가';
   const megaedHere = p.mon.megaed && !p.mon.gmax;
-  setText(HUD.megaLabel, !megaedHere && !can && !game.megaOK[p.idx] ? '사용함' : evoWord);
+  setText(HUD.megaLabel, !megaedHere && !can && !game.megaOK[p.burstSlot()] ? '사용함' : evoWord);
   const canG = p.canGmax();
   HUD.gmax.classList.toggle('off', !canG);
   HUD.gmax.classList.toggle('ready', canG);
   const giant = p.mon.gmax || p.mon.dmax;
   const giantWord = gmaxFormOf(p.mon.baseSp) ? '거대' : '다이';
   const giantLeft = giant && p.mon.giantT > 0 ? ' ' + Math.ceil(p.mon.giantT) : '';
-  setText(HUD.gmaxLabel, !giant && !canG && !game.gmaxOK[p.idx] ? '사용함' : giantWord + giantLeft);
+  setText(HUD.gmaxLabel, !giant && !canG && !game.gmaxOK[p.burstSlot()] ? '사용함' : giantWord + giantLeft);
   const gBtn = document.querySelector('#touchActs [data-act="gmax"]');
   if (gBtn) gBtn.textContent = giant ? giantWord + giantLeft : giantWord;
   const canZ = p.canZ();
   HUD.z.classList.toggle('off', !canZ);
   HUD.z.classList.toggle('ready', canZ);
   const hasZ = !!(Z_MOVES[p.mon.baseSp.key] || jogressPartner(p));
-  setText(HUD.zLabel, p.mon.zUsed || (!canZ && !game.zOK[p.idx]) ? '사용함' : (hasZ ? 'Z기술' : '없음'));
+  setText(HUD.zLabel, p.mon.zUsed || (!canZ && !game.zOK[p.burstSlot()]) ? '사용함' : (hasZ ? 'Z기술' : '없음'));
   const canT = p.canTera();
   HUD.tera.classList.toggle('off', !canT);
   HUD.tera.classList.toggle('ready', canT);
   const teraWord = p.mon.teraed && TYPES[p.mon.teraType] ? TYPES[p.mon.teraType].ko : '테라';
-  setText(HUD.teraLabel, p.mon.teraed || (!canT && !game.teraOK[p.idx]) ? (p.mon.teraed ? teraWord : '사용함') : '테라');
+  setText(HUD.teraLabel, p.mon.teraed || (!canT && !game.teraOK[p.burstSlot()]) ? (p.mon.teraed ? teraWord : '사용함') : '테라');
 }
 
 /* ---------------- 조작 설정 ---------------- */
@@ -1156,7 +1199,7 @@ function bindTouch() {
     else if (btn.dataset.act === 'gmax') p.gmaxEvolve();
     else if (btn.dataset.act === 'z') p.useZ();
     else if (btn.dataset.act === 'tera') p.terastallize();
-    else if (btn.dataset.slot != null) p.requestSwitch(+btn.dataset.slot);
+    else if (btn.dataset.slot != null) commandSlot(+btn.dataset.slot);
   });
   const clearMove = e => {
     const btn = e.target.closest ? e.target.closest('[data-move]') : null;
