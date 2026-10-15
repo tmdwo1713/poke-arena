@@ -61,6 +61,15 @@ const Sound = {
       case 'impact': this.noise(0.25, 0.1, 900); break;
       case 'hit': this.noise(0.08, 0.1, 2200); this.tone(160, 0.08, 'square', 0.05, -60); break;
       case 'super': this.noise(0.12, 0.12, 2600); this.tone(220, 0.15, 'square', 0.06, -120); break;
+      case 'zpower':
+        [392, 523, 659, 784, 1046].forEach((f, i) => this.tone(f, 0.16, 'square', 0.045, 50, i * 0.08));
+        this.tone(1568, 0.24, 'triangle', 0.04, 0, 0.42);
+        break;
+      case 'zhit':
+        this.noise(0.32, 0.13, 800);
+        this.tone(150, 0.36, 'sawtooth', 0.055, -80);
+        this.tone(523, 0.2, 'square', 0.04, 180);
+        break;
       case 'weak': this.noise(0.06, 0.06, 900); break;
       case 'miss': this.tone(1200, 0.06, 'sine', 0.03, 400); break;
       case 'dodge': this.noise(0.12, 0.04, 4000); break;

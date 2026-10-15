@@ -184,6 +184,8 @@ button:disabled { opacity: .45; cursor: default; }
 .slot .primal-tag { position: absolute; bottom: 4px; left: 5px; font-size: 9px; }
 .mega-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
 .mega-btn.on { border-color: #e2b0ff; background: linear-gradient(180deg, #6b3aa0, #4a2670); }
+.tera-btn { border-color: var(--tc, rgba(255,255,255,.2)); }
+.tera-btn.on { background: var(--tc, #9ef6ff); color: #1a1208; border-color: #fff; }
 .dd-moves-head { display: flex; justify-content: space-between; align-items: center; margin: 6px 0 4px; font-size: 12px; color: #9fb3dd; }
 .dd-move { cursor: pointer; }
 .dd-move .reroll { float: right; color: #c9d6f2; }
@@ -191,7 +193,8 @@ button:disabled { opacity: .45; cursor: default; }
 #abMega.ready { border-color: #e2b0ff; background: linear-gradient(180deg, rgba(180,90,255,.35), rgba(80,40,120,.4)); }
 #abGmax.ready { border-color: #ffb4b4; background: linear-gradient(180deg, rgba(255,80,80,.35), rgba(120,30,30,.4)); }
 #abZ.ready { border-color: #ffe14d; background: linear-gradient(180deg, rgba(255,210,60,.35), rgba(120,90,20,.4)); }
-#abMega.off, #abGmax.off, #abZ.off { opacity: .45; }
+#abTera.ready { border-color: #9ef6ff; background: linear-gradient(180deg, rgba(120,230,255,.4), rgba(40,80,140,.45)); }
+#abMega.off, #abGmax.off, #abZ.off, #abTera.off { opacity: .45; }
 .dex.is-legend { background: linear-gradient(180deg, rgba(255,215,90,.10), rgba(255,255,255,.03)); }
 .dd-name { font-size: 18px; font-weight: 900; }
 .dd-no { color: #8ea3cc; font-size: 12px; }
@@ -385,6 +388,12 @@ kbd {
 #banner.show { animation: bannerIn 1.5s ease-out forwards; }
 #banner.big { font-size: 72px; letter-spacing: 2px; color: #ffe14d; top: 260px; }
 #banner.big.show { animation: bannerBig 1.3s ease-out forwards; }
+#banner.z {
+  font-size: 52px; letter-spacing: 1px; color: #fff8dc; top: 214px;
+  text-shadow: 0 0 14px #ffe14d, 0 0 32px #ff9a1a, 0 4px 0 #5a3200, 0 6px 16px rgba(0,0,0,.55);
+}
+#banner.z.long { font-size: 34px; letter-spacing: 0; }
+#banner.z.show { animation: bannerZ 1.7s ease-out forwards; }
 @keyframes bannerIn {
   0% { opacity: 0; transform: translateY(16px); }
   12% { opacity: 1; transform: translateY(0); }
@@ -396,6 +405,13 @@ kbd {
   15% { opacity: 1; transform: scale(1); }
   80% { opacity: 1; }
   100% { opacity: 0; transform: scale(.96); }
+}
+@keyframes bannerZ {
+  0% { opacity: 0; transform: scale(.55); letter-spacing: 14px; }
+  16% { opacity: 1; transform: scale(1.06); letter-spacing: 2px; }
+  28% { transform: scale(1); }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.08); }
 }
 
 #resStats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
@@ -489,7 +505,7 @@ body.touch-dock #touchMoves button { display: flex; flex-direction: column; alig
 body.touch-dock #touchMoves b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 body.touch-dock #touchMoves small { color: #c9d6f2; font-size: 11px; }
 body.touch-dock #touchSide { display: contents; }
-body.touch-dock #touchActs { grid-area: acts; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+body.touch-dock #touchActs { grid-area: acts; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
 body.touch-dock #touchTeam { grid-area: team; display: flex; gap: 6px; }
 body.touch-dock #touchTeam:empty { display: none; }
 body.touch-dock #touchTeam button { width: 42px; min-height: 36px; padding: 4px; }

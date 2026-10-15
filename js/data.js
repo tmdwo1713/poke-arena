@@ -329,24 +329,31 @@ const MOVES = {
   greysword:    { name: '그레이소드',   type: 'fire',     cat: 'phy', power: 100, pp: 8,  cd: 1.7, kind: 'melee', reach: 92, arc: 1.7, kb: 420, sig: true },
   alldelete:    { name: '올 딜리트',    type: 'fire',     cat: 'spe', power: 150, pp: 5,  cd: 5.0, kind: 'beam',  charge: .5, width: 42, length: 740, ignoresAbility: true, sig: true },
   garurucannon: { name: '가루루포',     type: 'ice',      cat: 'spe', power: 110, pp: 8,  cd: 2.2, kind: 'beam',  charge: .3, width: 26, length: 640, sig: true },
+  gaiaforce:    { name: '가이아포스',   type: 'fire',     cat: 'spe', power: 130, pp: 5,  cd: 3.2, kind: 'proj',  speed: 500, r: 28, range: 620, status: ['brn', .2], fx: 'flame', sig: true, note: '워그레이몬의 전용기. 대기의 에너지를 한 점에 모아 쏘는 고열 에너지탄.' },
+  seolleongpo:  { name: '썰렁포',       type: 'ice',      cat: 'spe', power: 120, pp: 5,  cd: 2.8, kind: 'beam',  charge: .4, width: 42, length: 700, status: ['frz', .2], sig: true, note: '메탈가루몬의 전용기. 절대영도의 숨결로 상대를 얼린다.' },
+  glaciallance: { name: '블리자드랜스', type: 'ice', cat: 'phy', power: 130, pp: 5, cd: 2.8, kind: 'dash', dist: 280, speed: 1080, kb: 500, sig: true, note: '블리자포스와 백마 버드렉스의 전용기. 얼음 창을 꽂으며 들이받는다.' },
+  astralbarrage:{ name: '아스트랄비트', type: 'ghost', cat: 'spe', power: 120, pp: 5, cd: 2.4, kind: 'proj', speed: 680, r: 12, range: 560, count: 5, spread: 0.42, sig: true, note: '레이스포스와 흑마 버드렉스의 전용기. 유령 탄막을 쏟고, 그중 한 발이 맞는다.' },
   meteorassault:{ name: '스타어설트', type: 'fighting', cat: 'phy', power: 150, pp: 5, cd: 4.2, kind: 'melee', reach: 96, arc: 1.4, kb: 520, selfStun: .85, sig: true },
   fishiousrend: { name: '아가미물기', type: 'water', cat: 'phy', power: 85, pp: 10, cd: 1.6, kind: 'dash', dist: 230, speed: 1100, kb: 420, bite: true, first: true, sig: true },
-  catastropika: { name: '필살피카슛', type: 'electric', cat: 'phy', power: 210, pp: 1, cd: 0, kind: 'dash', dist: 280, speed: 1400, kb: 640, z: true },
-  tenmillionvolt:{ name: '1000만볼트', type: 'electric', cat: 'spe', power: 195, pp: 1, cd: 0, kind: 'beam', charge: .4, width: 64, length: 800, critBoost: true, fx: 'bolt', z: true },
-  pulverizingpancake: { name: '판케익부수기', type: 'normal', cat: 'phy', power: 210, pp: 1, cd: 0, kind: 'dash', dist: 240, speed: 780, kb: 700, selfStun: .55, z: true },
-  letsnuggleforever: { name: '투게더폴', type: 'fairy', cat: 'phy', power: 190, pp: 1, cd: 0, kind: 'melee', reach: 96, arc: 2.4, kb: 480, z: true },
-  sinisterarrowraid: { name: '섀도애로우즈스트라이크', type: 'ghost', cat: 'phy', power: 180, pp: 1, cd: 0, kind: 'proj', speed: 860, r: 14, range: 640, z: true },
-  maliciousmoonsault: { name: '하이퍼다크크러셔', type: 'dark', cat: 'phy', power: 180, pp: 1, cd: 0, kind: 'dash', dist: 260, speed: 1100, kb: 560, z: true },
-  oceanicoperetta: { name: '해원의아리아', type: 'water', cat: 'spe', power: 195, pp: 1, cd: 0, kind: 'target', delay: .55, radius: 130, z: true },
-  clangoroussoulblaze: { name: '브레이징소울비트', type: 'dragon', cat: 'spe', power: 185, pp: 1, cd: 0, kind: 'nova', radius: 170, z: true },
-  genesissupernova: { name: '오리진즈슈퍼노바', type: 'psychic', cat: 'spe', power: 185, pp: 1, cd: 0, kind: 'nova', radius: 180, z: true },
-  searingsunrazesmash: { name: '선샤인스매셔', type: 'steel', cat: 'phy', power: 200, pp: 1, cd: 0, kind: 'dash', dist: 280, speed: 1300, kb: 620, ignoresAbility: true, z: true },
-  menacingmoonrazemaelstrom: { name: '문라이트블래스터', type: 'ghost', cat: 'spe', power: 200, pp: 1, cd: 0, kind: 'beam', charge: .35, width: 48, length: 760, ignoresAbility: true, z: true },
+  catastropika: { name: '필살피카슛', type: 'electric', cat: 'phy', power: 210, pp: 1, cd: 0, kind: 'dash', dist: 280, speed: 1400, kb: 640, z: true, zfx: 'pika' },
+  tenmillionvolt:{ name: '1000만볼트', type: 'electric', cat: 'spe', power: 195, pp: 1, cd: 0, kind: 'beam', charge: .75, width: 64, length: 800, critBoost: true, fx: 'bolt', z: true, zfx: 'volt' },
+  pulverizingpancake: { name: '판케익부수기', type: 'normal', cat: 'phy', power: 210, pp: 1, cd: 0, kind: 'dash', dist: 240, speed: 780, kb: 700, selfStun: .55, z: true, zfx: 'pancake' },
+  letsnuggleforever: { name: '투게더폴', type: 'fairy', cat: 'phy', power: 190, pp: 1, cd: 0, kind: 'melee', reach: 96, arc: 2.4, kb: 480, z: true, zfx: 'hug' },
+  sinisterarrowraid: { name: '섀도애로우즈스트라이크', type: 'ghost', cat: 'phy', power: 180, pp: 1, cd: 0, kind: 'proj', speed: 920, r: 16, range: 680, count: 9, spread: 0.5, homing: 5, fx: 'arrow', z: true, zfx: 'arrow' },
+  maliciousmoonsault: { name: '하이퍼다크크러셔', type: 'dark', cat: 'phy', power: 180, pp: 1, cd: 0, kind: 'dash', dist: 260, speed: 1100, kb: 560, z: true, zfx: 'moonsault' },
+  oceanicoperetta: { name: '해원의아리아', type: 'water', cat: 'spe', power: 195, pp: 1, cd: 0, kind: 'target', delay: .85, radius: 130, z: true, zfx: 'aria' },
+  clangoroussoulblaze: { name: '브레이징소울비트', type: 'dragon', cat: 'spe', power: 185, pp: 1, cd: 0, kind: 'nova', radius: 170, z: true, zfx: 'scales' },
+  genesissupernova: { name: '오리진즈슈퍼노바', type: 'psychic', cat: 'spe', power: 185, pp: 1, cd: 0, kind: 'nova', radius: 180, z: true, zfx: 'nova' },
+  searingsunrazesmash: { name: '선샤인스매셔', type: 'steel', cat: 'phy', power: 200, pp: 1, cd: 0, kind: 'dash', dist: 280, speed: 1300, kb: 620, ignoresAbility: true, z: true, zfx: 'sun' },
+  menacingmoonrazemaelstrom: { name: '문라이트블래스터', type: 'ghost', cat: 'spe', power: 200, pp: 1, cd: 0, kind: 'beam', charge: .65, width: 48, length: 760, ignoresAbility: true, z: true, zfx: 'moon' },
+  lightthatburnsthesky: { name: '하늘을태우는멸망의빛', type: 'psychic', cat: 'spe', power: 200, pp: 1, cd: 0, kind: 'beam', charge: .7, width: 72, length: 840, ignoresAbility: true, bestStat: true, z: true, zfx: 'prism', note: '울트라네크로즈마의 Z기술. 공격과 특수공격 중 높은 쪽으로 때리고, 상대의 특성을 무시한다.' },
   naturesmadness: { name: '자연의분노', type: 'fairy', cat: 'spe', power: 1, pp: 10, cd: 2.2, kind: 'proj', speed: 620, r: 16, range: 520, halfHp: true, sig: true },
-  guardianofalola: { name: '알로라의수호자', type: 'fairy', cat: 'spe', power: 1, pp: 1, cd: 0, kind: 'target', delay: .55, radius: 140, hpRatio: 0.75, z: true },
+  guardianofalola: { name: '알로라의수호자', type: 'fairy', cat: 'spe', power: 1, pp: 1, cd: 0, kind: 'target', delay: .95, radius: 140, hpRatio: 0.75, z: true, zfx: 'guardian' },
 
   accelerock:  { name: '액셀록', type: 'rock', cat: 'phy', power: 40, pp: 20, cd: 0.7, kind: 'dash', dist: 190, speed: 1500, priority: true, sig: true, note: '바위 선공기. 전광석화보다 빠르게 파고든다.' },
   counter:     { name: '카운터', type: 'fighting', cat: 'sta', power: 0, pp: 20, cd: 3.4, kind: 'guard', guard: 1.15, counter: 2, statusOnly: true, note: '잠시 자세를 잡는다. 그 사이 물리 공격을 받으면 받은 데미지의 2배를 되돌린다.' },
+  protect:     { name: '방어', type: 'normal', cat: 'sta', power: 0, pp: 10, cd: 4, kind: 'guard', guard: 1.2, protect: true, statusOnly: true, note: '잠시 모든 공격을 막는다. 노가드, 그리고 방어를 뚫는 특성의 접촉 기술은 막지 못한다.' },
+  metronome:   { name: '손가락흔들기', type: 'normal', cat: 'sta', power: 0, pp: 10, cd: 2.6, kind: 'self', metronome: true, statusOnly: true, note: '손가락을 흔들어 아무 기술이나 하나를 쓴다. Z기술은 나오지 않는다.' },
   payday:      { name: '고양이돈받기', type: 'normal', cat: 'phy', power: 40, pp: 20, cd: 1.1, kind: 'proj', speed: 640, r: 10, range: 480, payday: true, sig: true, note: '동전을 던진다. 맞히면 이 기술의 PP를 1 돌려받는다.' },
   fakeout:     { name: '속이다', type: 'normal', cat: 'phy', power: 40, pp: 10, cd: 2.4, kind: 'melee', reach: 64, arc: 1.6, flinch: true, priority: true, opening: 6, sig: true, note: '나온 뒤 6초 안에만 맞는다. 맞히면 상대가 움찔해 행동이 끊긴다.' },
   sleeppowder: { name: '수면가루', type: 'grass', cat: 'sta', power: 0, pp: 15, cd: 3.6, kind: 'target', delay: .55, radius: 52, status: ['frz', 1], statusOnly: true, note: '가루를 뿌린다. 맞으면 얼어붙어 잠시 움직이지 못한다.' },
@@ -513,6 +520,7 @@ function moveText(mv) {
   if (mv.suppress) bits.push('이미 기술을 쓴 상대의 특성을 지운다');
   if (mv.terrainDash) bits.push('그래스필드에서는 더 빠르게 미끄러진다');
   if (mv.pivot) bits.push('맞힌 뒤 다른 포켓몬으로 돌아간다');
+  if (mv.protect) bits.push('잠시 모든 공격을 막는다');
   if (mv.ignoresAbility) bits.push('상대의 특성을 무시한다');
   if (mv.freezeDry) bits.push('물 타입에게 효과가 굉장하다');
   if (!bits.length && mv.power > 0) bits.push(mv.cat === 'phy' ? '물리 공격' : '특수 공격');
@@ -581,6 +589,24 @@ const Z_MOVES = {
   tapubulu: 'guardianofalola',
   tapufini: 'guardianofalola',
 };
+// 워그레이몬 + 메탈가루몬이 같은 팀에 있으면 Z키로 레벨 100 오메가몬이 된다.
+const JOGRESS = { wargreymon: 'metalgarurumon', metalgarurumon: 'wargreymon' };
+function jogressPartner(side) {
+  if (!side || !side.mon || !side.mon.baseSp) return null;
+  const need = JOGRESS[side.mon.baseSp.key];
+  if (!need || side.mon.transformed) return null;
+  for (let i = 0; i < side.team.length; i++) {
+    if (i === side.active) continue;
+    const m = side.team[i];
+    if (m && !m.fainted && m.baseSp && m.baseSp.key === need && !m.transformed) return m;
+  }
+  return null;
+}
+function zMoveId(mon) {
+  if (!mon || !mon.baseSp) return null;
+  if (mon.megaed && mon.sp && mon.sp.id === 10157) return 'lightthatburnsthesky';
+  return Z_MOVES[mon.baseSp.key] || null;
+}
 
 const ABILITIES = {
   wonderguard:  { name: '불가사의부적', desc: '효과가 굉장한(약점) 공격만 받는다. 타입 없는 발버둥과 공격 외 데미지(상태이상·용암·모래바람·까칠한피부)는 막지 못한다.' },
@@ -644,6 +670,8 @@ const ABILITIES = {
   refrigerate:  { name: '프리즈스킨',   desc: '노말 기술이 얼음 타입이 되고 위력이 1.2배.' },
   swarm:        { name: '벌레의알림',   desc: 'HP가 1/3 이하일 때 벌레 기술 위력 1.5배.' },
   moxie:        { name: '자기과신',     desc: '상대를 쓰러뜨리면 공격이 오른다.' },
+  chillingneigh:{ name: '백의울음',     desc: '상대를 쓰러뜨리면 공격이 오른다.' },
+  grimneigh:    { name: '흑의울음',     desc: '상대를 쓰러뜨리면 특수공격이 오른다.' },
   beastboost:   { name: '비스트부스트', desc: '상대를 쓰러뜨리면 가장 높은 능력이 오른다.' },
   berserk:      { name: '분노의경혈',   desc: 'HP가 절반 이하가 되면 특수공격이 오른다.' },
   poisonpoint:  { name: '독가시',       desc: '근접·돌진 공격을 한 상대를 30% 확률로 독에 걸리게 한다.' },
@@ -710,7 +738,7 @@ const ABILITIES = {
 const POKEMON = [
   { id: 19,  key: 'rattata',   name: '꼬렛',       types: ['normal'],            base: [30, 56, 35, 25, 35, 72],     moves: ['hyperbeam', 'quickattack', 'crunch', 'facade'], extra: ['irontail', 'suckerpunch', 'shadowclaw'], fixedLevel: 100 },
   { id: 25,  key: 'pikachu',   name: '피카츄',     types: ['electric'],          base: [35, 55, 40, 50, 50, 90],     moves: ['volttackle', 'thunderbolt', 'quickattack', 'thunder'], extra: ['irontail'] },
-  { id: 10094, key: 'ashpikachu', name: '지우피카츄', types: ['electric'],       base: [35, 55, 40, 50, 50, 90],     moves: ['thunderbolt', 'quickattack', 'irontail', 'thunder'], extra: ['wildcharge'] },
+  { id: 10094, key: 'ashpikachu', name: '지우피카츄', types: ['electric'],       base: [35, 55, 40, 50, 50, 90],     moves: ['thunderbolt', 'quickattack', 'irontail', 'thunder'], extra: ['wildcharge'],fixedLevel: 100 },
   { id: 6,   key: 'charizard', name: '리자몽',     types: ['fire', 'flying'],    base: [78, 84, 78, 109, 85, 100],   moves: ['flamethrower', 'airslash', 'dragonclaw', 'fireblast'], extra: ['earthquake', 'solarbeam', 'dragonpulse'] },
   { id: 9,   key: 'blastoise', name: '거북왕',     types: ['water'],             base: [79, 83, 100, 85, 105, 78],   moves: ['hydropump', 'surf', 'icebeam', 'bite'], extra: ['aurasphere', 'darkpulse', 'dragonpulse', 'flashcannon'] },
   { id: 3,   key: 'venusaur',  name: '이상해꽃',   types: ['grass', 'poison'],   base: [80, 82, 83, 100, 100, 80],   moves: ['razorleaf', 'sludgebomb', 'solarbeam', 'petalblizzard'], extra: ['earthquake', 'earthpower'] },
@@ -1054,12 +1082,14 @@ const POKEMON = [
   { id: 802, key: 'marshadow', name: '마샤도',     types: ['fighting', 'ghost'], base: [90, 125, 80, 90, 90, 125],   moves: ['closecombat', 'shadowsneak', 'icepunch', 'suckerpunch'], extra: ['poltergeist'], legend: true },
   { id: 807, key: 'zeraora',   name: '제라오라',   types: ['electric'],          base: [88, 112, 75, 102, 80, 143],  moves: ['wildcharge', 'closecombat', 'thunderpunch', 'drainpunch'], extra: ['playrough'], legend: true },
   { id: 809, key: 'melmetal',  name: '멜메탈',     types: ['steel'],             base: [135, 143, 143, 80, 65, 34],  moves: ['doubleironbash', 'heavyslam', 'earthquake', 'thunderpunch'], extra: ['icepunch', 'superpower'], legend: true },
-  { id: 896, key: 'glastrier', name: '블리자포스', types: ['ice'],               base: [100, 145, 130, 65, 110, 30], moves: ['iciclecrash', 'closecombat', 'highhorsepower', 'bodypress'], extra: ['zenheadbutt'], legend: true },
-  { id: 897, key: 'spectrier', name: '레이스포스', types: ['ghost'],             base: [100, 65, 60, 145, 80, 130],  moves: ['shadowball', 'psychic', 'drainingkiss', 'hex'], extra: ['darkpulse'], legend: true },
-  { id: 10193, key: 'calyrexice', name: '버드렉스(백마 탄 모습)', types: ['psychic', 'ice'], base: [100, 165, 150, 85, 130, 50], moves: ['iciclecrash', 'closecombat', 'highhorsepower', 'bodypress'], extra: ['zenheadbutt'], legend: true },
-  { id: 10194, key: 'calyrexshadow', name: '버드렉스(흑마 탄 모습)', types: ['psychic', 'ghost'], base: [100, 85, 80, 165, 100, 150], moves: ['psychic', 'shadowball', 'energyball', 'psyshock'], extra: ['dazzlinggleam'], legend: true },
+  { id: 896, key: 'glastrier', name: '블리자포스', types: ['ice'],               base: [100, 145, 130, 65, 110, 30], moves: ['glaciallance', 'closecombat', 'highhorsepower', 'bodypress'], extra: ['iciclecrash', 'zenheadbutt'], legend: true },
+  { id: 897, key: 'spectrier', name: '레이스포스', types: ['ghost'],             base: [100, 65, 60, 145, 80, 130],  moves: ['astralbarrage', 'shadowball', 'psychic', 'drainingkiss'], extra: ['hex', 'darkpulse'], legend: true },
+  { id: 10193, key: 'calyrexice', name: '버드렉스(백마 탄 모습)', types: ['psychic', 'ice'], base: [100, 165, 150, 85, 130, 50], moves: ['glaciallance', 'closecombat', 'highhorsepower', 'bodypress'], extra: ['iciclecrash', 'zenheadbutt'], legend: true },
+  { id: 10194, key: 'calyrexshadow', name: '버드렉스(흑마 탄 모습)', types: ['psychic', 'ghost'], base: [100, 85, 80, 165, 100, 150], moves: ['astralbarrage', 'shadowball', 'energyball', 'psyshock'], extra: ['psychic', 'dazzlinggleam'], legend: true },
   { id: 1016, key: 'fezandipiti', name: '기로치',  types: ['poison', 'fairy'],   base: [88, 91, 82, 70, 125, 99],    moves: ['moonblast', 'playrough', 'heatwave', 'uturn'], extra: ['gunkshot'], legend: true },
   { id: 1017, key: 'ogerpon',  name: '오거폰',     types: ['grass'],             base: [80, 120, 84, 60, 96, 110],   moves: ['woodhammer', 'playrough', 'knockoff', 'uturn'], extra: ['superpower'], legend: true },
+  { id: 90003, key: 'wargreymon', name: '워그레이몬', types: ['fire', 'dragon'], base: [104, 140, 105, 80, 100, 115], moves: ['gaiaforce', 'flareblitz', 'outrage', 'extremespeed'], extra: ['closecombat', 'dragonclaw', 'firepunch', 'earthquake'], legend: true, draw: 0.62 },
+  { id: 90004, key: 'metalgarurumon', name: '메탈가루몬', types: ['ice', 'steel'], base: [104, 95, 120, 145, 100, 110], moves: ['seolleongpo', 'flashcannon', 'blizzard', 'icefang'], extra: ['freezedry', 'thunderbolt', 'darkpulse', 'icebeam'], legend: true, draw: 0.62 },
 
   // 이스터에그. 도감에는 숨겨 두고, 메뉴에서 비밀 입력을 하면 풀린다.
   { id: 90001, key: 'omegamon', name: '오메가몬', types: ['fire', 'ice'], base: [108, 130, 120, 130, 115, 97], moves: ['greysword', 'garurucannon', 'extremespeed', 'icebeam'], fixedPool: true, egg: true },
@@ -1139,8 +1169,9 @@ const POKEMON_ABILITY = {
   nihilego: 'beastboost', buzzwole: 'beastboost', pheromosa: 'beastboost', xurkitree: 'beastboost', celesteela: 'beastboost',
   kartana: 'beastboost', guzzlord: 'beastboost', poipole: 'beastboost', naganadel: 'beastboost', stakataka: 'beastboost', blacephalon: 'beastboost',
   magearna: 'clearbody', marshadow: 'technician',
-  zeraora: 'voltabsorb', melmetal: 'ironfist', glastrier: 'innerfocus', spectrier: 'cursedbody',
-  calyrexice: 'innerfocus', calyrexshadow: 'pressure', fezandipiti: 'technician', ogerpon: 'defiant',
+  zeraora: 'voltabsorb', melmetal: 'ironfist', glastrier: 'chillingneigh', spectrier: 'grimneigh',
+  calyrexice: 'chillingneigh', calyrexshadow: 'grimneigh', fezandipiti: 'technician', ogerpon: 'defiant',
+  wargreymon: 'toughclaws', metalgarurumon: 'clearbody',
   omegamon: 'royalknight',
 };
 for (const p of POKEMON) p.ability = POKEMON_ABILITY[p.key];
@@ -1210,8 +1241,8 @@ const MEGA_DATA = {
   greninja:   [{ id: 10294, types: ['water', 'dark'],     base: [72, 125, 77, 133, 81, 142],  ability: 'protean' },
                { id: 10117, suffix: 'ash', label: '지우개굴닌자', hud: '지우', tag: '지우', name: '지우개굴닌자', types: ['water', 'dark'], base: [72, 145, 67, 153, 71, 132], ability: 'battlebond' }],
   omegamon:   [{ id: 90002, suffix: 'X', label: 'X진화', hud: 'X진화', tag: 'X', name: '오메가몬X', types: ['fire', 'ice'], base: [108, 155, 130, 155, 125, 112], ability: 'royalknight', gainMove: 'alldelete', battleOnly: true }],
-  necrozmadusk: [{ id: 10157, name: '울트라네크로즈마', label: '울트라진화', hud: '울트라', tag: '울트라', types: ['psychic', 'dragon'], base: [97, 167, 97, 167, 97, 129], ability: 'neuroforce', battleOnly: true, hint: '배틀에서 R키로 울트라네크로즈마가 된다. 팀당 1회' }],
-  necrozmadawn: [{ id: 10157, name: '울트라네크로즈마', label: '울트라진화', hud: '울트라', tag: '울트라', types: ['psychic', 'dragon'], base: [97, 167, 97, 167, 97, 129], ability: 'neuroforce', battleOnly: true, hint: '배틀에서 R키로 울트라네크로즈마가 된다. 팀당 1회' }],
+  necrozmadusk: [{ id: 10157, name: '울트라네크로즈마', label: '울트라진화', hud: '울트라', tag: '울트라', types: ['psychic', 'dragon'], base: [97, 167, 97, 167, 97, 129], ability: 'neuroforce', battleOnly: true, hint: '배틀에서 R키로 울트라네크로즈마가 된다. 그 상태의 Z기술은 하늘을태우는멸망의빛. 팀당 1회' }],
+  necrozmadawn: [{ id: 10157, name: '울트라네크로즈마', label: '울트라진화', hud: '울트라', tag: '울트라', types: ['psychic', 'dragon'], base: [97, 167, 97, 167, 97, 129], ability: 'neuroforce', battleOnly: true, hint: '배틀에서 R키로 울트라네크로즈마가 된다. 그 상태의 Z기술은 하늘을태우는멸망의빛. 팀당 1회' }],
   arceus:    [{ id: 493, name: '아르세우스(레전드플레이트)', label: '레전드플레이트', hud: '레전드', tag: '레전드', types: ['normal'], base: [120, 120, 120, 120, 120, 120], ability: 'legendplate', battleOnly: true, hint: '배틀에서 R키로 레전드플레이트를 장착한다. 기술을 쓰면 그 타입으로 변하고, 심판의뭉치는 상대 약점에 맞춘다. 팀당 1회' }],
   hawlucha:   [{ id: 10300, types: ['fighting', 'flying'], base: [78, 137, 100, 74, 93, 118], ability: 'noguard' }],
   staraptor:  [{ id: 10308, types: ['fighting', 'flying'], base: [85, 140, 100, 60, 90, 110], ability: 'contrary' }],
@@ -1321,7 +1352,7 @@ for (const [key, f] of Object.entries(PRIMAL_DATA)) {
 }
 
 /* ---------------- 랜덤 기술 뽑기 ---------------- */
-const UNIVERSAL_MOVES = { phy: ['gigaimpact', 'facade'], spe: ['hyperbeam'] };
+const UNIVERSAL_MOVES = { phy: ['gigaimpact', 'facade'], spe: ['hyperbeam'], sta: ['protect', 'metronome'] };
 const poolCache = {};
 
 // 배울 수 있는 기술: 기본 기술 + extra + 자기 타입(메가 폼 타입 포함)의 일반 기술 + 범용기
@@ -1341,6 +1372,7 @@ function movePool(sp) {
       if (types.has(mv.type) && cats.includes(mv.cat)) set.add(id);
     }
     for (const c of cats) for (const id of UNIVERSAL_MOVES[c]) set.add(id);
+    for (const id of UNIVERSAL_MOVES.sta) set.add(id);
   }
   return (poolCache[sp.key] = [...set]);
 }
@@ -1377,7 +1409,7 @@ function megaForms(sp) { return (sp && sp.megas || []).filter(f => !f.gmax); }
 function gmaxFormOf(sp) { return (sp && sp.megas || []).find(f => f.gmax) || null; }
 
 // CPU가 조종할 때 이 포켓몬이 쓸 수 있는 행동. 비어 있으면 가진 것을 모두 쓴다.
-const BURST_LIMITS = [['', '제한 없음'], ['mega', '메가만'], ['gmax', '거대만'], ['z', 'Z만']];
+const BURST_LIMITS = [['', '제한 없음'], ['mega', '메가만'], ['gmax', '거대만'], ['z', 'Z만'], ['tera', '테라만']];
 function burstLimit(v) { return BURST_LIMITS.some(([id]) => id === v) ? v : ''; }
 
 // 팀 항목: 'pikachu' 같은 문자열 또는 { key, moves, mega, limit }
@@ -1392,7 +1424,8 @@ function normalizeEntry(e) {
   if (moves.length < 4) moves = moves.concat(sp.moves.filter(id => !moves.includes(id))).slice(0, 4);
   const forms = megaForms(sp);
   const mega = forms.length ? Math.min(forms.length - 1, Math.max(0, (e && e.mega) | 0)) : 0;
-  return { key, moves, mega, limit: burstLimit(e && e.limit) };
+  const tera = e && TYPES[e.tera] && e.tera !== 'none' ? e.tera : sp.types[0];
+  return { key, moves, mega, limit: burstLimit(e && e.limit), tera };
 }
 
 /* ---------------- 스프라이트 ---------------- */
@@ -1407,7 +1440,7 @@ const spriteReady = new Map();
 const LOCAL_PNG = new Set([10301]);
 function spriteSources(id, back) {
   const dir = back ? 'back' : 'front';
-  if (id >= 90000 || LOCAL_PNG.has(id)) return [`assets/sprites/${dir}/${id}.png?v=zy1`];
+  if (id >= 90000 || LOCAL_PNG.has(id)) return [`assets/sprites/${dir}/${id}.png?v=digi2`];
   const show = `${SPRITE_REMOTE}/other/showdown/${back ? 'back/' : ''}${id}.gif`;
   const srcs = [];
   if (LOCAL_GIF[dir].has(id)) srcs.push(`assets/sprites/${dir}/${id}.gif`);

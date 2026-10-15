@@ -89,7 +89,7 @@ function matchesDex(sp) {
   const q = UI.search.trim();
   if (UI.formFilter === 'mega' && !megaForms(sp).length) return false;
   if (UI.formFilter === 'gmax' && !gmaxFormOf(sp)) return false;
-  if (UI.formFilter === 'z' && !Z_MOVES[sp.key]) return false;
+  if (UI.formFilter === 'z' && !Z_MOVES[sp.key] && !JOGRESS[sp.key]) return false;
   if (sp.egg) return eggNameQuery(q);
   if (UI.typeFilter && !view.types.includes(UI.typeFilter)) return false;
   if (!q) return true;
@@ -284,7 +284,7 @@ function renderDetail(key) {
   const notes = forms.map(f => f.label);
   if (gmaxFormOf(sp)) notes.push('거다이맥스');
   if (sp.completeForm) notes.push('퍼펙트폼');
-  if (Z_MOVES[sp.key]) notes.push('Z기술');
+  if (Z_MOVES[sp.key] || JOGRESS[sp.key]) notes.push('Z기술');
   const evoNote = notes.length ? ` · ${notes.join('·')} 가능` : '';
   const replaced = gainSlot >= 0 ? MOVES[entry.moves[gainSlot]] : null;
   const evoHint = [
@@ -293,7 +293,8 @@ function renderDetail(key) {
       : (form && form.hint) || (forms.length ? 'R키로 메가. 팀당 1회' : ''),
     gmaxFormOf(sp) ? `G키로 거다이맥스. HP 2배, 30초 뒤 원래 비율로 돌아온다. 기술은 다이맥스 기술로 바뀌고, 전용 기술은 ${GMAX_MOVES[sp.key] ? GMAX_MOVES[sp.key].name : '없음'}. 팀당 다이맥스와 합쳐 1회. 같은 포켓몬은 메가와 거다이맥스 중 하나만`
       : 'G키로 다이맥스. HP 2배, 30초 뒤 원래 비율로 돌아온다. 공격 기술은 타입별 다이맥스 기술로, 변화 기술은 다이월로 바뀐다. 팀당 거다이맥스와 합쳐 1회',
-    Z_MOVES[sp.key] ? `Z키로 ${MOVES[Z_MOVES[sp.key]].name}. 팀당 1회` : '',
+    Z_MOVES[sp.key] ? `Z키로 ${MOVES[Z_MOVES[sp.key]].name}${(sp.key === 'necrozmadusk' || sp.key === 'necrozmadawn') ? '. 울트라네크로즈마가 되면 하늘을태우는멸망의빛' : ''}. 팀당 1회` : '',
+    JOGRESS[sp.key] ? `같은 파티에 ${POKEMON_BY_KEY[JOGRESS[sp.key]].name}가 있으면 Z키로 레벨 100 오메가몬이 된다. 남은 한 마리는 쓰러진다. 팀당 1회` : '',
     sp.completeForm ? `HP가 절반 이하가 되면 ${sp.completeForm.name}로 변한다` : '',
   ].filter(Boolean).join(' · ');
   box.innerHTML = `
@@ -301,13 +302,14 @@ function renderDetail(key) {
       <div class="pic"></div>
       <div>
         <div class="dd-no">No.${String(sp.id).padStart(4, '0')} · Lv.${lv}${evoNote}${sp.primal ? ' · 원시회귀' : ''}</div>
-        <div class="dd-name">${view.name}${sp.legend ? ' <span class="legend-tag">전설</span>' : ''}${form && !form.battleOnly ? ` <span class="mega-tag">${form.tag || 'Mega'}</span>` : (!form && forms.length ? ' <span class="mega-tag">Mega</span>' : '')}${gmaxFormOf(sp) ? ' <span class="mega-tag">거대</span>' : ''}${Z_MOVES[sp.key] ? ' <span class="mega-tag">Z</span>' : ''}${sp.primal ? ' <span class="primal-tag">원시</span>' : ''}</div>
+        <div class="dd-name">${view.name}${sp.legend ? ' <span class="legend-tag">전설</span>' : ''}${form && !form.battleOnly ? ` <span class="mega-tag">${form.tag || 'Mega'}</span>` : (!form && forms.length ? ' <span class="mega-tag">Mega</span>' : '')}${gmaxFormOf(sp) ? ' <span class="mega-tag">거대</span>' : ''}${(Z_MOVES[sp.key] || JOGRESS[sp.key]) ? ' <span class="mega-tag">Z</span>' : ''}${sp.primal ? ' <span class="primal-tag">원시</span>' : ''}</div>
         <div>${view.types.map(typeBadge).join('')}</div>
       </div>
     </div>
     <div class="dd-ability"><b>특성 · ${ab.name}</b>${ab.desc}</div>
     ${(megaBtns || evoHint) ? `<div class="mega-row">${megaBtns}<span class="hint" style="margin:0">${evoHint}</span></div>` : ''}
-    ${ti >= 0 ? `<div class="mega-row">${BURST_LIMITS.map(([id, label]) => `<button class="small limit-btn${(entry.limit || '') === id ? ' on' : ''}" data-limit="${id}">${label}</button>`).join('')}<span class="hint" style="margin:0">CPU가 조종할 때만. 고른 행동만 메가·거다이맥스·Z 중에서 씁니다.</span></div>` : ''}
+    ${ti >= 0 ? `<div class="mega-row">${BURST_LIMITS.map(([id, label]) => `<button class="small limit-btn${(entry.limit || '') === id ? ' on' : ''}" data-limit="${id}">${label}</button>`).join('')}<span class="hint" style="margin:0">CPU가 조종할 때만. 고른 행동만 메가·거다이맥스·Z·테라 중에서 씁니다.</span></div>` : ''}
+    ${ti >= 0 ? `<div class="mega-row tera-row"><span class="hint" style="margin:0">테라타입 · T키, 팀당 1회</span>${Object.keys(TYPES).filter(t => t !== 'none').map(t => `<button class="small tera-btn${(entry.tera || sp.types[0]) === t ? ' on' : ''}" data-tera="${t}" style="--tc:${TYPES[t].color}">${TYPES[t].ko}</button>`).join('')}</div>` : ''}
     <div class="stats">${labels.map((l, i) => {
       const baseN = i === 0 && view.gmax ? view.base[i] * 2 : view.base[i];
       const pct = Math.min(100, baseN / 180 * 100);
@@ -329,6 +331,9 @@ function renderDetail(key) {
     });
     box.querySelectorAll('.limit-btn').forEach(b => {
       b.onclick = () => { roster()[ti].limit = b.dataset.limit; Sound.play('select'); renderSlots(); renderDetail(key); };
+    });
+    box.querySelectorAll('.tera-btn').forEach(b => {
+      b.onclick = () => { roster()[ti].tera = b.dataset.tera; Sound.play('select'); renderDetail(key); };
     });
     const all = box.querySelector('#btnAllMoves');
     if (all) all.onclick = () => { roster()[ti].moves = randomMoves(sp); Sound.play('select'); renderDetail(key); };
@@ -567,6 +572,7 @@ $('#abSwitch').onclick = () => { const p = playerNow(); if (p) p.requestSwitch()
 $('#abMega').onclick = () => { const p = playerNow(); if (p) p.megaEvolve(); };
 $('#abGmax').onclick = () => { const p = playerNow(); if (p) p.gmaxEvolve(); };
 $('#abZ').onclick = () => { const p = playerNow(); if (p) p.useZ(); };
+$('#abTera').onclick = () => { const p = playerNow(); if (p) p.terastallize(); };
 $('#btnPause').onclick = () => setPaused(true);
 $('#btnResume').onclick = () => setPaused(false);
 $('#btnRestart').onclick = () => startBattle(UI.last);
@@ -690,9 +696,10 @@ function cardHTML(side, label) {
   const st = m.status ? `<span class="st-badge" style="background:${STATUS[m.status].color}">${STATUS[m.status].ko}</span>` : '';
   const balls = side.team.map(x => `<span class="ball${x.fainted ? ' out' : ''}"></span>`).join('');
   const mega = m.megaed ? ` <span class="mega-tag">${m.sp.tag || 'Mega'}</span>` : m.sp.primaled ? ' <span class="primal-tag">원시</span>' : '';
+  const tera = m.teraed ? ` <span class="mega-tag" style="background:${TYPES[m.teraType].color};color:#1a1208">테라</span>` : '';
   const boss = m.boss ? ' <span class="boss-tag">BOSS</span>' : '';
   return `<div class="card-top"><span>${label}</span><span class="abil-name">${(ABILITIES[m.ability] && ABILITIES[m.ability].name) || '특성 없음'} · Lv. ${m.level}</span></div>
-    <div class="card-name"><span class="nm">${m.sp.name}</span>${boss}${mega}${m.sp.types.map(typeBadge).join('')}${st}</div>
+    <div class="card-name"><span class="nm">${m.sp.name}</span>${boss}${mega}${tera}${battleTypes(m).map(typeBadge).join('')}${st}</div>
     <div class="hpbar"><div class="hplag"></div><div class="hpfill"></div></div>
     <div class="card-bot"><span class="hptext"></span><span class="balls">${balls}</span></div>`;
 }
@@ -735,12 +742,15 @@ function bindHUD() {
   HUD.z = $('#abZ');
   HUD.zLabel = HUD.z.querySelector('span');
   HUD.zKey = HUD.z.querySelector('b');
+  HUD.tera = $('#abTera');
+  HUD.teraLabel = HUD.tera.querySelector('span');
+  HUD.teraKey = HUD.tera.querySelector('b');
   HUD.ffa = $('#ffaBoard');
 }
 
 function updateCard(el, side, label, sigKey) {
   const m = side.mon;
-  const sig = `${side.active}|${m.status}|${m.ability}|${m.sp.key}|${m.sp.types.join(',')}|${m.sp.id}|${m.megaed}|${side.team.map(x => x.fainted ? 1 : 0).join('')}`;
+  const sig = `${side.active}|${m.status}|${m.ability}|${m.sp.key}|${battleTypes(m).join(',')}|${m.teraed ? 1 : 0}|${m.sp.id}|${m.megaed}|${side.team.map(x => x.fainted ? 1 : 0).join('')}`;
   if (UI.hudSig[sigKey] !== sig) {
     UI.hudSig[sigKey] = sig;
     el.innerHTML = cardHTML(side, label);
@@ -885,6 +895,7 @@ function updateHUD() {
   setText(HUD.megaKey, Controls.primaryText('mega'));
   setText(HUD.gmaxKey, Controls.primaryText('gmax'));
   setText(HUD.zKey, Controls.primaryText('zmove'));
+  setText(HUD.teraKey, Controls.primaryText('tera'));
   const can = p.canMega();
   HUD.mega.classList.toggle('off', !can);
   HUD.mega.classList.toggle('ready', can);
@@ -904,7 +915,13 @@ function updateHUD() {
   const canZ = p.canZ();
   HUD.z.classList.toggle('off', !canZ);
   HUD.z.classList.toggle('ready', canZ);
-  setText(HUD.zLabel, p.mon.zUsed || (!canZ && !game.zOK[p.idx]) ? '사용함' : (Z_MOVES[p.mon.baseSp.key] ? 'Z기술' : '없음'));
+  const hasZ = !!(Z_MOVES[p.mon.baseSp.key] || jogressPartner(p));
+  setText(HUD.zLabel, p.mon.zUsed || (!canZ && !game.zOK[p.idx]) ? '사용함' : (hasZ ? 'Z기술' : '없음'));
+  const canT = p.canTera();
+  HUD.tera.classList.toggle('off', !canT);
+  HUD.tera.classList.toggle('ready', canT);
+  const teraWord = p.mon.teraed && TYPES[p.mon.teraType] ? TYPES[p.mon.teraType].ko : '테라';
+  setText(HUD.teraLabel, p.mon.teraed || (!canT && !game.teraOK[p.idx]) ? (p.mon.teraed ? teraWord : '사용함') : '테라');
 }
 
 /* ---------------- 조작 설정 ---------------- */
@@ -938,6 +955,7 @@ function buildHelp() {
     { ids: ['mega'], desc: '메가진화 (팀당 1회). 오메가몬은 X진화, 네크로즈마는 울트라, 아르세우스는 레전드플레이트' },
     { ids: ['gmax'], desc: '다이맥스 또는 거다이맥스 (팀당 합쳐 1회, 메가와 따로). HP가 2배가 되고 30초 뒤에 원래 비율로 돌아온다. 공격 기술은 다이맥스 기술로, 변화 기술은 다이월로 바뀐다. 거다이맥스는 전용 타입이면 거다이맥스 기술이 나간다' },
     { ids: ['zmove'], desc: '전용 Z기술 (팀당 1회). 메가·거다이맥스와 따로 쓸 수 있다' },
+    { ids: ['tera'], desc: '테라스탈 (팀당 1회). 팀 편성에서 고른 테라타입이 되고, 그 타입 기술은 자속이다. 원래 타입과 같으면 자속이 2배' },
     { ids: ['pause'], desc: '일시정지' },
   ];
   $('#helpKeys').innerHTML = rows.map(r => {
@@ -1137,6 +1155,7 @@ function bindTouch() {
     else if (btn.dataset.act === 'mega') p.megaEvolve();
     else if (btn.dataset.act === 'gmax') p.gmaxEvolve();
     else if (btn.dataset.act === 'z') p.useZ();
+    else if (btn.dataset.act === 'tera') p.terastallize();
     else if (btn.dataset.slot != null) p.requestSwitch(+btn.dataset.slot);
   });
   const clearMove = e => {
