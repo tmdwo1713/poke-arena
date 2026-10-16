@@ -95,6 +95,7 @@ function matchesDex(sp) {
   if (UI.formFilter === 'mega' && !megaForms(sp).length) return false;
   if (UI.formFilter === 'gmax' && !gmaxFormOf(sp)) return false;
   if (UI.formFilter === 'z' && !Z_MOVES[sp.key] && !JOGRESS[sp.key]) return false;
+  if (UI.formFilter === 'legend' && !sp.legend) return false;
   if (sp.egg && !dexQueryHit(sp, view, q)) return false;
   if (UI.typeFilter && !view.types.includes(UI.typeFilter)) return false;
   if (!q) return true;
@@ -161,7 +162,7 @@ let detailKey = null;
 function buildTeam() {
   const chips = $('#typeChips');
   chips.innerHTML = '';
-  for (const [id, label, color] of [['mega', '메가', '#c9a227'], ['gmax', '거다이', '#e3350d'], ['z', 'Z', '#5b4bff']]) {
+  for (const [id, label, color] of [['mega', '메가', '#c9a227'], ['gmax', '거다이', '#e3350d'], ['z', 'Z', '#5b4bff'], ['legend', '전설', '#f0b429']]) {
     const c = document.createElement('span');
     c.className = 'chip form' + (UI.formFilter === id ? ' on' : '');
     c.style.background = color;

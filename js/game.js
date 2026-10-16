@@ -268,11 +268,24 @@ function stabMod(mon, atkT, ability) {
   return stabbed ? (adapt ? 2 : 1.5) : 1;
 }
 
+function paradoxStat(mon, game) {
+  if (!mon || !game) return '';
+  const on = (mon.ability === 'protosynthesis' && game.weatherNow() === 'sun')
+    || (mon.ability === 'quarkdrive' && game.terrainNow() === 'electric');
+  if (!on) return '';
+  const order = [['atk', mon.stats.atk], ['def', mon.stats.def], ['spa', mon.stats.spa], ['spd', mon.stats.spd], ['spe', mon.stats.spe]];
+  let best = order[0];
+  for (const pair of order) if (pair[1] > best[1]) best = pair;
+  return best[0];
+}
+
 function typeEffFor(srcMon, mv, defMon, game) {
   const atk = plateAttackType(srcMon, mv, defMon) || attackType(srcMon, mv);
   if (atk === 'none') return 1;
   let types = battleTypes(defMon);
-  if (srcMon.ability === 'scrappy' && (atk === 'normal' || atk === 'fighting')) types = types.filter(t => t !== 'ghost');
+  if (srcMon.ability === 'scrappy' || srcMon.ability === 'mindseye') {
+    if (atk === 'normal' || atk === 'fighting') types = types.filter(t => t !== 'ghost');
+  }
   if ((defMon.grounded || mv.smackDown) && atk === 'ground') types = types.filter(t => t !== 'flying');
   let eff = typeEffect(atk, types);
   if (mv.freezeDry && types.includes('water')) eff *= 4;
@@ -392,6 +405,7 @@ class Side {
     const w = this.g.weatherNow();
     if (this.mon.ability === 'chlorophyll' && w === 'sun') s *= 1.5;
     if (this.mon.ability === 'swiftswim' && w === 'rain') s *= 1.5;
+    if (paradoxStat(this.mon, this.g) === 'spe') s *= 1.3;
     return s;
   }
 
@@ -415,12 +429,15 @@ class Side {
       this.struggleCd = MOVES.struggle.cd;
     } else {
       if (slot.cd > 0) return false;
+      if (MOVES[id].noRepeat && this.lastMoveId === id) return false;
       const f = this.foe;
       const pressure = f && this.g.targetable(f) && f.mon.ability === 'pressure';
       slot.pp = Math.max(0, slot.pp - (pressure ? 2 : 1));
       slot.cd = battleMove(this.mon, id).cd;
+      if (this.mon.ability === 'truant') slot.cd *= 2;
     }
     this.gcd = 0.25;
+    this.lastMoveId = id;
     this.acted = true;
     this.g.performMove(this, id);
     return true;
@@ -705,6 +722,8 @@ class Side {
     prev.powderT = 0;
     prev.grounded = false;
     this.acted = false;
+    this.lastMoveId = '';
+    for (const mon of [prev, this.team[idx]]) for (const sl of mon.moves) if (MOVES[sl.id] && MOVES[sl.id].noRepeat) sl.cd = 0;
     this.active = idx;
     this.cast = null;
     this.dash = null;
@@ -728,7 +747,9 @@ class Side {
   update(dt) {
     const g = this.g;
     if (g.sides.find(s => s.team === this.team) === this) {
-      for (const mon of this.team) for (const sl of mon.moves) if (sl.cd > 0) sl.cd -= dt;
+      for (const mon of this.team) for (const sl of mon.moves) {
+        if (sl.cd > 0 && !(MOVES[sl.id] && MOVES[sl.id].noRepeat && this.lastMoveId === sl.id && mon === this.mon)) sl.cd -= dt;
+      }
     }
     this.dodgeCd -= dt; this.iframes -= dt; this.switchCd -= dt; this.gcd -= dt;
     this.struggleCd -= dt; this.flash -= dt;
@@ -1435,10 +1456,10 @@ class Game {
             this.abilityPop(foe, 'contrary');
             foe.mon.atkMod *= 1.5;
             this.text(foe.x, foe.y - foe.spriteH() - 20, '공격이 올랐다!', '#ff9aa8', 15, 1.2);
-          } else if (foe.mon.ability === 'defiant') {
-            this.abilityPop(foe, 'defiant');
-            foe.mon.atkMod *= 2;
-            this.text(foe.x, foe.y - foe.spriteH() - 20, '공격이 크게 올랐다!', '#ff9aa8', 15, 1.2);
+          } else if (foe.mon.ability === 'defiant' || foe.mon.ability === 'guarddog') {
+            this.abilityPop(foe, foe.mon.ability);
+            foe.mon.atkMod *= foe.mon.ability === 'guarddog' ? 1.5 : 2;
+            this.text(foe.x, foe.y - foe.spriteH() - 20, foe.mon.ability === 'guarddog' ? '공격이 올랐다!' : '공격이 크게 올랐다!', '#ff9aa8', 15, 1.2);
           } else if (foe.mon.ability === 'mirrorarmor') {
             this.abilityPop(foe, 'mirrorarmor');
             m.atkMod *= 2 / 3;
@@ -1476,6 +1497,8 @@ class Game {
       case 'fairyaura': case 'darkaura': case 'hadronengine': case 'goodasgold': case 'baddreams':
       case 'chillingneigh': case 'grimneigh':
       case 'tabletsofruin': case 'swordofruin': case 'vesselofruin': case 'beadsofruin':
+      case 'illusion': case 'cutecharm': case 'zerotohero': case 'transistor': case 'dragonsmaw':
+      case 'protosynthesis': case 'quarkdrive': case 'truant': case 'toxicchain': case 'poisonpuppeteer': case 'mindseye':
         this.abilityPop(s, m.ability);
         break;
     }
@@ -1910,7 +1933,7 @@ class Game {
         }
         this.telegraphs.push({
           x: tx, y: ty, r: mv.radius, t: delay, max: delay, mv, owner: s, mon: s.mon, seq, sure,
-          zColor: mv.zfx === 'guardian' ? zUserColor(s, mv) : TYPES[mv.type].color,
+          zColor: mv.zfx === 'guardian' ? zUserColor(s, mv) : (mv.tint || TYPES[mv.type].color),
         });
         Sound.play('target');
         break;
@@ -2235,6 +2258,11 @@ class Game {
     let atkStat = phy ? srcMon.stats.atk * atkMod : srcMon.stats.spa * spaMod;
     if (mv.useDef) atkStat = srcMon.stats.def * (srcMon.defMod || 1);
     if (aAb === 'hugepower' && phy && !mv.useDef) atkStat *= 2;
+    const aPx = paradoxStat(srcMon, this);
+    const dPx = paradoxStat(def, this);
+    if (aPx === 'atk' && phy && !mv.useDef) atkStat *= 1.3;
+    if (aPx === 'spa' && !phy) atkStat *= 1.3;
+    if (aPx === 'def' && mv.useDef) atkStat *= 1.3;
     if (aAb === 'orichalcumpulse' && phy && !mv.useDef && this.weatherNow() === 'sun') atkStat *= 1.3;
     if (aAb === 'guts' && srcMon.status && phy && !mv.useDef) atkStat *= 1.5;
     if (aAb === 'solarpower' && this.weatherNow() === 'sun' && !phy) atkStat *= 1.5;
@@ -2243,6 +2271,8 @@ class Game {
     if (!mv.useDef) atkStat *= ruined(srcMon, phy ? 'tabletsofruin' : 'vesselofruin');
     dfs *= ruined(def, usesDef ? 'swordofruin' : 'beadsofruin');
     if (dAb === 'marvelscale' && def.status) dfs *= 1.5;
+    if (dPx === 'def' && usesDef) dfs *= 1.3;
+    if (dPx === 'spd' && !usesDef) dfs *= 1.3;
 
     let power = mv.power;
     if (aAb === 'technician' && power <= 60) power *= 1.5;
@@ -2263,6 +2293,8 @@ class Game {
     if (aAb === 'reckless' && (mv.recoil || mv.crash)) power *= 1.2;
     if (aAb === 'sandforce' && this.weatherNow() === 'sand' && ['rock', 'ground', 'steel'].includes(atkT)) power *= 1.3;
     if (aAb === 'hadronengine' && !phy && atkT === 'electric') power *= 1.3;
+    if (aAb === 'transistor' && atkT === 'electric') power *= 1.3;
+    if (aAb === 'dragonsmaw' && atkT === 'dragon') power *= 1.5;
     if (aAb === 'royalknight' && (atkT === 'fire' || atkT === 'ice')) power *= 1.3;
     if (aAb === 'battlebond' && mv.bond) power *= 20 / 15;
     if (this.sides.some(sd => this.targetable(sd) && sd.switching <= 0 && ((sd.mon.ability === 'fairyaura' && atkT === 'fairy') || (sd.mon.ability === 'darkaura' && atkT === 'dark')))) power *= 1.33;
@@ -2402,6 +2434,11 @@ class Game {
         this.abilityPop(t, 'poisonpoint');
         this.applyStatus(src, 'psn');
       }
+    }
+    if ((aAb === 'toxicchain' || aAb === 'poisonpuppeteer') && def.hp > 0 && !def.status && Math.random() < 0.3) {
+      this.abilityPop(src, aAb);
+      this.applyStatus(t, 'psn');
+      if (aAb === 'poisonpuppeteer') t.confuseT = 4;
     }
     if (aAb === 'parentalbond' && !mv._bond && !mv.multiHit && def.hp > 0 && srcActive) {
       this.applyHit(src, srcMon, t, Object.assign({}, mv, { power: Math.max(1, Math.round(mv.power / 4)), _bond: true, status: null, flinch: false }), dir, seq + 9000);
