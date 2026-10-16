@@ -1088,10 +1088,9 @@ const POKEMON = [
   { id: 10194, key: 'calyrexshadow', name: '버드렉스(흑마 탄 모습)', types: ['psychic', 'ghost'], base: [100, 85, 80, 165, 100, 150], moves: ['astralbarrage', 'shadowball', 'energyball', 'psyshock'], extra: ['psychic', 'dazzlinggleam'], legend: true },
   { id: 1016, key: 'fezandipiti', name: '기로치',  types: ['poison', 'fairy'],   base: [88, 91, 82, 70, 125, 99],    moves: ['moonblast', 'playrough', 'heatwave', 'uturn'], extra: ['gunkshot'], legend: true },
   { id: 1017, key: 'ogerpon',  name: '오거폰',     types: ['grass'],             base: [80, 120, 84, 60, 96, 110],   moves: ['woodhammer', 'playrough', 'knockoff', 'uturn'], extra: ['superpower'], legend: true },
-  { id: 90003, key: 'wargreymon', name: '워그레이몬', types: ['fire', 'dragon'], base: [104, 140, 105, 80, 100, 115], moves: ['gaiaforce', 'flareblitz', 'outrage', 'extremespeed'], extra: ['closecombat', 'dragonclaw', 'firepunch', 'earthquake'], legend: true, draw: 0.62 },
-  { id: 90004, key: 'metalgarurumon', name: '메탈가루몬', types: ['ice', 'steel'], base: [104, 95, 120, 145, 100, 110], moves: ['seolleongpo', 'flashcannon', 'blizzard', 'icefang'], extra: ['freezedry', 'thunderbolt', 'darkpulse', 'icebeam'], legend: true, draw: 0.62 },
-
-  // 이스터에그. 도감에는 숨겨 두고, 메뉴에서 비밀 입력을 하면 풀린다.
+  // 디지몬. 도감 기본 목록에는 없고, 팀 편성 검색창에 이름을 입력해야 나온다.
+  { id: 90003, key: 'wargreymon', name: '워그레이몬', types: ['fire', 'dragon'], base: [104, 140, 105, 80, 100, 115], moves: ['gaiaforce', 'flareblitz', 'outrage', 'extremespeed'], extra: ['closecombat', 'dragonclaw', 'firepunch', 'earthquake'], legend: true, draw: 0.62, egg: true },
+  { id: 90004, key: 'metalgarurumon', name: '메탈가루몬', types: ['ice', 'steel'], base: [104, 95, 120, 145, 100, 110], moves: ['seolleongpo', 'flashcannon', 'blizzard', 'icefang'], extra: ['freezedry', 'thunderbolt', 'darkpulse', 'icebeam'], legend: true, draw: 0.62, egg: true },
   { id: 90001, key: 'omegamon', name: '오메가몬', types: ['fire', 'ice'], base: [108, 130, 120, 130, 115, 97], moves: ['greysword', 'garurucannon', 'extremespeed', 'icebeam'], fixedPool: true, egg: true },
 ];
 

@@ -80,9 +80,13 @@ function sentForm(sp, entry) {
   if (shown.battleOnly) return sp;
   return shown;
 }
-function eggNameQuery(q) {
-  const s = q.toLowerCase().replace(/\s+/g, '');
-  return s.includes('omega') || q.includes('오메가');
+function dexQueryHit(sp, view, q) {
+  if (!q) return false;
+  const compact = q.toLowerCase().replace(/\s+/g, '');
+  if (sp.egg && (compact.includes('digimon') || q.includes('디지몬'))) return true;
+  const ql = q.toLowerCase();
+  if (sp.name.includes(q) || view.name.includes(q) || sp.key.includes(ql)) return true;
+  return (sp.megas || []).some(f => f.name.includes(q) || (f.label && f.label.includes(q)));
 }
 function matchesDex(sp) {
   if (sp.hidden) return false;
@@ -91,12 +95,10 @@ function matchesDex(sp) {
   if (UI.formFilter === 'mega' && !megaForms(sp).length) return false;
   if (UI.formFilter === 'gmax' && !gmaxFormOf(sp)) return false;
   if (UI.formFilter === 'z' && !Z_MOVES[sp.key] && !JOGRESS[sp.key]) return false;
-  if (sp.egg) return eggNameQuery(q);
+  if (sp.egg && !dexQueryHit(sp, view, q)) return false;
   if (UI.typeFilter && !view.types.includes(UI.typeFilter)) return false;
   if (!q) return true;
-  const ql = q.toLowerCase();
-  if (sp.name.includes(q) || view.name.includes(q) || sp.key.includes(ql)) return true;
-  return (sp.megas || []).some(f => f.name.includes(q) || (f.label && f.label.includes(q)));
+  return dexQueryHit(sp, view, q);
 }
 function spriteImg(id, cls = '', lazy = false) {
   const img = document.createElement('img');
@@ -417,7 +419,7 @@ function buildPre() {
   teamPreview($('#cpuPreview'), UI.cpuTeam);
   const fmt = $('#fmtBtns');
   fmt.innerHTML = '';
-  for (const [on, label, desc] of [[false, '싱글', '1마리씩'], [true, '더블', '2마리씩']]) {
+  for (const [on, label, desc] of [[false, '싱글', '1마리씩'], [true, '더블', '최대 2마리']]) {
     const b = document.createElement('button');
     b.className = UI.doubles === on ? 'on' : '';
     b.innerHTML = `${label} <small style="opacity:.7;font-weight:400">· ${desc}</small>`;
@@ -430,7 +432,7 @@ function buildPre() {
     fmt.appendChild(b);
   }
   $('#preHint').textContent = UI.doubles
-    ? '더블은 양쪽 2마리 이상이 필요합니다. 2마리씩 나와 같은 편으로 싸우고, 1번을 직접 조작합니다. 아래 팀 칸의 파트너를 누르면 그 포켓몬을 조작합니다. 메가·다이맥스·Z·테라는 편마다 1회입니다.'
+    ? '더블은 양쪽 1마리여도 시작할 수 있습니다. 2마리 이상이면 2마리씩 나와 같은 편으로 싸우고, 1번을 직접 조작합니다. 아래 팀 칸의 파트너를 누르면 그 포켓몬을 조작합니다. 메가·다이맥스·Z·테라는 편마다 1회입니다.'
     : 'CPU끼리 관전할 때 포켓몬마다 메가·거다이맥스·Z·테라 중 하나만 쓰게 하려면, 팀 편성 상세에서 CPU 제한을 고르세요. 직접 조작할 때는 제한되지 않습니다.';
 }
 
@@ -438,8 +440,8 @@ $('#btnReroll').onclick = () => { UI.cpuTeam = randomTeam(); saveCpuTeam(); Soun
 $('#btnEditTeam').onclick = () => openTeam('player', 'pre');
 $('#btnEditCpu').onclick = () => openTeam('cpu', 'pre');
 function quickReady() {
-  if (UI.team.length < (UI.doubles ? 2 : 1)) { openTeam('player', 'pre'); return false; }
-  if (UI.cpuTeam.length < (UI.doubles ? 2 : 1)) { openTeam('cpu', 'pre'); return false; }
+  if (UI.team.length < 1) { openTeam('player', 'pre'); return false; }
+  if (UI.cpuTeam.length < 1) { openTeam('cpu', 'pre'); return false; }
   return true;
 }
 $('#btnStart').onclick = () => {
@@ -518,9 +520,8 @@ $('#btnBossStart').onclick = () => {
 };
 
 function startWatch() {
-  let playerTeam = UI.team.length ? UI.team.slice() : randomTeam();
-  if (UI.doubles && playerTeam.length < 2) playerTeam = randomTeam();
-  if (UI.doubles && UI.cpuTeam.length < 2) { UI.cpuTeam = randomTeam(); saveCpuTeam(); }
+  const playerTeam = UI.team.length ? UI.team.slice() : randomTeam();
+  if (!UI.cpuTeam.length) { UI.cpuTeam = randomTeam(); saveCpuTeam(); }
   startBattle({ mode: 'quick', doubles: UI.doubles, watch: true, arena: UI.arena, diff: UI.diff, playerTeam, cpuTeam: UI.cpuTeam.slice(), cpuLevel: 50, cpuName: 'CPU TRAINER' });
 }
 
