@@ -197,6 +197,7 @@ const MOVES = {
   leafblade:    { name: '리프블레이드', type: 'grass',    cat: 'phy', power: 90,  pp: 15, cd: 1.4, kind: 'melee', reach: 76, arc: 1.6 },
   petalblizzard:{ name: '꽃보라',       type: 'grass',    cat: 'phy', power: 90,  pp: 15, cd: 2.4, kind: 'nova',  radius: 135 },
   woodhammer:   { name: '우드해머',     type: 'grass',    cat: 'phy', power: 120, pp: 15, cd: 3.0, kind: 'dash',  dist: 240, speed: 1000, recoil: .33 },
+  ivycudgel:    { name: '덩굴방망이',   type: 'grass',    cat: 'phy', power: 100, pp: 10, cd: 2.2, kind: 'dash',  dist: 250, speed: 1100, critBoost: true, mask: true, sig: true },
   powerwhip:    { name: '파워휩',       type: 'grass',    cat: 'phy', power: 120, pp: 10, cd: 3.0, kind: 'melee', reach: 86, arc: 1.6 },
   seedbomb:     { name: '씨폭탄',       type: 'grass',    cat: 'phy', power: 80,  pp: 15, cd: 1.4, kind: 'proj',  speed: 560, r: 13, range: 480, ball: true },
   solarbeam:    { name: '솔라빔',       type: 'grass',    cat: 'spe', power: 120, pp: 8,  cd: 4.0, kind: 'beam',  charge: 1.0, width: 42, length: 840 },
@@ -524,12 +525,17 @@ function moveText(mv) {
   if (mv.protect) bits.push('잠시 모든 공격을 막는다');
   if (mv.ignoresAbility) bits.push('상대의 특성을 무시한다');
   if (mv.freezeDry) bits.push('물 타입에게 효과가 굉장하다');
+  if (mv.mask) bits.push('가면에 따라 타입이 바뀐다. 테라스탈하면 위력 120');
   if (!bits.length && mv.power > 0) bits.push(mv.cat === 'phy' ? '물리 공격' : '특수 공격');
   if (!bits.length) bits.push('변화 기술');
   return bits.join('. ') + '.';
 }
 function battleMove(mon, id) {
-  const base = MOVES[id];
+  let base = MOVES[id];
+  if (base && mon && base.mask && mon.mask) {
+    const type = mon.teraed && TYPES[mon.teraType] ? mon.teraType : (mon.mask.cudgel || 'grass');
+    base = { ...base, type, power: mon.teraed ? 120 : base.power };
+  }
   if (!base || !mon || !(mon.dmax || mon.gmax) || id === 'struggle' || base.z) return base;
   if (!base.power || base.statusOnly) {
     return {
@@ -736,6 +742,7 @@ const ABILITIES = {
   guarddog:     { name: '가드독',       desc: '위협을 받아도 공격이 떨어지지 않고, 오히려 공격이 오른다.' },
   toxicchain:   { name: '독사슬',       desc: '기술을 맞히면 30% 확률로 상대를 독에 걸리게 한다.' },
   poisonpuppeteer:{ name: '독조종',    desc: '기술을 맞히면 30% 확률로 상대를 독에 걸리게 하고 혼란시킨다.' },
+  embodyaspect: { name: '초상투영',     desc: '테라스탈하면 가면에 따라 스피드·특수방어·공격·방어 중 하나가 1.5배가 된다.' },
   justified:    { name: '정의의마음',   desc: '악 기술을 맞으면 공격이 오른다.' },
   limber:       { name: '유연',         desc: '마비 상태가 되지 않는다.' },
   defiant:      { name: '오기',         desc: '위협으로 능력이 떨어질 때 공격이 크게 오른다.' },
@@ -1100,7 +1107,7 @@ const POKEMON = [
   { id: 10193, key: 'calyrexice', name: '버드렉스(백마 탄 모습)', types: ['psychic', 'ice'], base: [100, 165, 150, 85, 130, 50], moves: ['glaciallance', 'closecombat', 'highhorsepower', 'bodypress'], extra: ['iciclecrash', 'zenheadbutt'], legend: true },
   { id: 10194, key: 'calyrexshadow', name: '버드렉스(흑마 탄 모습)', types: ['psychic', 'ghost'], base: [100, 85, 80, 165, 100, 150], moves: ['astralbarrage', 'shadowball', 'energyball', 'psyshock'], extra: ['psychic', 'dazzlinggleam'], legend: true },
   { id: 1016, key: 'fezandipiti', name: '기로치',  types: ['poison', 'fairy'],   base: [88, 91, 82, 70, 125, 99],    moves: ['moonblast', 'playrough', 'heatwave', 'uturn'], extra: ['gunkshot'], legend: true },
-  { id: 1017, key: 'ogerpon',  name: '오거폰',     types: ['grass'],             base: [80, 120, 84, 60, 96, 110],   moves: ['woodhammer', 'playrough', 'knockoff', 'uturn'], extra: ['superpower'], legend: true },
+  { id: 1017, key: 'ogerpon',  name: '오거폰',     types: ['grass'],             base: [80, 120, 84, 60, 96, 110],   moves: ['ivycudgel', 'playrough', 'knockoff', 'uturn'], extra: ['superpower', 'woodhammer'], legend: true },
   { id: 40, key: 'wigglytuff', name: '푸크린', types: ['normal', 'fairy'], base: [140, 70, 45, 85, 50, 45], moves: ['hypervoice', 'playrough', 'dazzlinggleam', 'bodyslam'], extra: ['flamethrower', 'thunderbolt', 'icebeam'] },
   { id: 289, key: 'slaking', name: '게을킹', types: ['normal'], base: [150, 160, 100, 95, 65, 100], moves: ['gigaimpact', 'earthquake', 'hammerarm', 'facade'], extra: ['firepunch', 'icepunch', 'thunderpunch'] },
   { id: 10104, key: 'ninetalesalola', name: '나인테일(알로라)', types: ['ice', 'fairy'], base: [73, 67, 75, 81, 100, 109], moves: ['blizzard', 'moonblast', 'freezedry', 'dazzlinggleam'], extra: ['icebeam', 'psyshock'] },
@@ -1433,6 +1440,18 @@ for (const [key, f] of Object.entries(PRIMAL_DATA)) {
   sp.primal = { ...sp, ...f, primaled: true, key: key + '-primal', primal: null, crown: null, megas: null };
 }
 
+// 오거폰은 가면을 끼고 나오고, 테라스탈하면 그 가면의 테라 모습이 된다.
+const OGERPON_MASKS = [
+  { label: '벽록의가면', name: '오거폰(벽록의가면)', types: ['grass'], ability: 'defiant', tera: 'grass', boost: 'spe', id: 1017, cudgel: 'grass', teraSprite: 'ogerpon-tealtera' },
+  { label: '우물의가면', name: '오거폰(우물의가면)', types: ['grass', 'water'], ability: 'waterabsorb', tera: 'water', boost: 'spd', id: 10273, cudgel: 'water', teraSprite: 'ogerpon-wellspringtera' },
+  { label: '화덕의가면', name: '오거폰(화덕의가면)', types: ['grass', 'fire'], ability: 'moldbreaker', tera: 'fire', boost: 'atk', id: 10274, cudgel: 'fire', teraSprite: 'ogerpon-hearthflametera' },
+  { label: '주춧돌의가면', name: '오거폰(주춧돌의가면)', types: ['grass', 'rock'], ability: 'sturdy', tera: 'rock', boost: 'def', id: 10275, cudgel: 'rock', teraSprite: 'ogerpon-cornerstonetera' },
+];
+{
+  const sp = POKEMON_BY_KEY.ogerpon;
+  sp.masks = OGERPON_MASKS.map(f => ({ ...sp, ...f, masks: null, key: sp.key }));
+}
+
 /* ---------------- 랜덤 기술 뽑기 ---------------- */
 const UNIVERSAL_MOVES = { phy: ['gigaimpact', 'facade'], spe: ['hyperbeam'], sta: ['protect', 'metronome'] };
 const poolCache = {};
@@ -1504,10 +1523,16 @@ function normalizeEntry(e) {
   let moves = e && Array.isArray(e.moves) ? e.moves.filter(id => pool.includes(id)) : [];
   moves = [...new Set(moves)].slice(0, 4);
   if (moves.length < 4) moves = moves.concat(sp.moves.filter(id => !moves.includes(id))).slice(0, 4);
+  if (key === 'ogerpon' && MOVES.ivycudgel && !moves.includes('ivycudgel')) {
+    const at = moves.indexOf('woodhammer');
+    moves[at >= 0 ? at : 0] = 'ivycudgel';
+  }
   const forms = megaForms(sp);
   const mega = forms.length ? Math.min(forms.length - 1, Math.max(0, (e && e.mega) | 0)) : 0;
-  const tera = e && TYPES[e.tera] && e.tera !== 'none' ? e.tera : sp.types[0];
-  return { key, moves, mega, limit: burstLimit(e && e.limit), tera };
+  const masks = sp.masks || [];
+  const mask = masks.length ? Math.min(masks.length - 1, Math.max(0, (e && e.mask) | 0)) : 0;
+  const tera = masks.length ? masks[mask].tera : (e && TYPES[e.tera] && e.tera !== 'none' ? e.tera : sp.types[0]);
+  return { key, moves, mega, limit: burstLimit(e && e.limit), tera, mask };
 }
 
 /* ---------------- 스프라이트 ---------------- */
@@ -1521,6 +1546,10 @@ const spriteReady = new Map();
 
 const LOCAL_PNG = new Set([10301]);
 function spriteSources(id, back) {
+  if (typeof id === 'string' && id.indexOf('ogerpon') === 0) {
+    const dir = back ? 'back' : 'front';
+    return [`assets/sprites/${dir}/${id}.png?v=tera1`];
+  }
   const dir = back ? 'back' : 'front';
   if (id >= 90000 || LOCAL_PNG.has(id)) return [`assets/sprites/${dir}/${id}.png?v=digi2`];
   const show = `${SPRITE_REMOTE}/other/showdown/${back ? 'back/' : ''}${id}.gif`;

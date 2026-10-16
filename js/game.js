@@ -206,7 +206,8 @@ function makeMon(entry, level, opts = {}) {
   if (!n) throw new Error('unknown pokemon ' + JSON.stringify(entry));
   const baseSp = POKEMON_BY_KEY[n.key];
   if (baseSp.fixedLevel) level = baseSp.fixedLevel;
-  const sp = baseSp.primal || baseSp.crown || baseSp;
+  const mask = baseSp.masks ? baseSp.masks[Math.min(baseSp.masks.length - 1, Math.max(0, n.mask | 0))] : null;
+  const sp = mask ? { ...mask } : (baseSp.primal || baseSp.crown || baseSp);
   const ids = opts.randomize ? randomMoves(baseSp) : n.moves;
   const stats = calcStats(sp, level);
   if (baseSp.fixedHp) stats.hp = baseSp.fixedHp;
@@ -218,9 +219,10 @@ function makeMon(entry, level, opts = {}) {
     moves: ids.map(id => ({ id, pp: MOVES[id].pp, maxPp: MOVES[id].pp, cd: 0 })),
     status: null, statusT: 0, fainted: false,
     ability: sp.ability, atkMod: 1, defMod: 1, speMod: 1, spaMod: 1, spdMod: 1,
-    teraType: n.tera, teraed: false,
+    teraType: mask ? mask.tera : n.tera, teraed: false,
     flashFire: false, disguiseBroken: false,
     megaIdx: n.mega || 0, megaed: false, transformed: false, limit: n.limit || '',
+    mask: mask || null,
   };
 }
 
@@ -377,7 +379,7 @@ class Side {
   spriteH() { return (this.el.naturalHeight || 40) * this.spriteScale(); }
 
   applySprite() {
-    const id = this.mon.sp.id;
+    const id = this.mon.sp.sprite || this.mon.sp.id;
     for (const [el, back] of [[this.elF, false], [this.elB, true]]) {
       const sizeEl = () => {
         if (!el.naturalWidth) return;
@@ -530,11 +532,23 @@ class Side {
 
   terastallize() {
     if (!this.canTera()) return false;
-    const t = this.mon.teraType;
+    const mask = this.mon.mask;
+    const t = mask ? mask.tera : this.mon.teraType;
+    this.mon.teraType = t;
     this.mon.teraed = true;
     this.g.teraOK[this.burstSlot()] = false;
     const col = TYPES[t].color;
-    this.g.banner(`${TYPES[t].ko} 테라스탈!`, true);
+    if (mask && mask.teraSprite) {
+      this.mon.sp = { ...this.mon.sp, id: mask.teraSprite, sprite: mask.teraSprite, types: [t], ability: 'embodyaspect', draw: 1.5 };
+      this.mon.ability = 'embodyaspect';
+      const mod = { spe: 'speMod', atk: 'atkMod', def: 'defMod', spd: 'spdMod' }[mask.boost];
+      if (mod) this.mon[mod] *= 1.5;
+      this.applySprite();
+      this.g.abilityPop(this, 'embodyaspect');
+      const word = { spe: '스피드가', atk: '공격이', def: '방어가', spd: '특수방어가' }[mask.boost];
+      if (word) this.g.text(this.x, this.y - this.spriteH() - 34, word + ' 올랐다!', col, 16, 1.1);
+    }
+    this.g.banner(`${mask ? mask.label + ' · ' : ''}${TYPES[t].ko} 테라스탈!`, true);
     this.g.burst(this.x, this.y - LIFT, col, 26, 280);
     this.g.effects.push({ type: 'ring', x: this.x, y: this.y, r: 108, color: col, life: 0.55, max: 0.55 });
     this.g.effects.push({ type: 'ring', x: this.x, y: this.y - 18, r: 42, color: '#fff', life: 0.4, max: 0.4 });
@@ -723,8 +737,15 @@ class Side {
     prev.grounded = false;
     this.acted = false;
     this.lastMoveId = '';
-    for (const mon of [prev, this.team[idx]]) for (const sl of mon.moves) if (MOVES[sl.id] && MOVES[sl.id].noRepeat) sl.cd = 0;
+    for (const mon of [prev, this.team[idx]])     for (const sl of mon.moves) if (MOVES[sl.id] && MOVES[sl.id].noRepeat) sl.cd = 0;
     this.active = idx;
+    const backIn = this.mon;
+    if (backIn.teraed && backIn.mask && backIn.mask.boost) {
+      const mod = { spe: 'speMod', atk: 'atkMod', def: 'defMod', spd: 'spdMod' }[backIn.mask.boost];
+      if (mod) backIn[mod] = 1.5;
+      backIn.ability = 'embodyaspect';
+      if (backIn.sp) backIn.sp.ability = 'embodyaspect';
+    }
     this.cast = null;
     this.dash = null;
     this.stun = 0;
@@ -1205,9 +1226,13 @@ class Game {
     }
     const warm = () => {
       for (const m of allMons) {
-        const ids = [m.sp.id, ...(m.baseSp.megas || []).map(f => f.id)];
+        const ids = [m.sp.sprite || m.sp.id, ...(m.baseSp.megas || []).map(f => f.id)];
         if (m.baseSp.primal) ids.push(m.baseSp.primal.id);
         if (m.baseSp.crown) ids.push(m.baseSp.crown.id);
+        for (const mask of m.baseSp.masks || []) {
+          ids.push(mask.id);
+          if (mask.teraSprite) ids.push(mask.teraSprite);
+        }
         for (const id of ids) {
           if (!spriteReady.has('f' + id)) setSprite(new Image(), id, false);
           if (!spriteReady.has('b' + id)) setSprite(new Image(), id, true);

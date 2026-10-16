@@ -184,7 +184,7 @@ button:disabled { opacity: .45; cursor: default; }
 .slot .mega-tag { position: absolute; bottom: 4px; right: 5px; font-size: 9px; }
 .slot .primal-tag { position: absolute; bottom: 4px; left: 5px; font-size: 9px; }
 .mega-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
-.mega-btn.on { border-color: #e2b0ff; background: linear-gradient(180deg, #6b3aa0, #4a2670); }
+.mega-btn.on, .mask-btn.on { border-color: #e2b0ff; background: linear-gradient(180deg, #6b3aa0, #4a2670); }
 .tera-btn { border-color: var(--tc, rgba(255,255,255,.2)); }
 .tera-btn.on { background: var(--tc, #9ef6ff); color: #1a1208; border-color: #fff; }
 .dd-moves-head { display: flex; justify-content: space-between; align-items: center; margin: 6px 0 4px; font-size: 12px; color: #9fb3dd; }

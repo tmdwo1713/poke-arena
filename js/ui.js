@@ -61,7 +61,7 @@ function randomTeam(exclude = []) {
   const out = [];
   while (out.length < TEAM_SIZE) {
     const k = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-    out.push(normalizeEntry({ key: k, moves: randomMoves(POKEMON_BY_KEY[k]) }));
+    out.push(normalizeEntry({ key: k, moves: randomMoves(POKEMON_BY_KEY[k]), mask: POKEMON_BY_KEY[k].masks ? Math.floor(Math.random() * POKEMON_BY_KEY[k].masks.length) : 0 }));
   }
   return out;
 }
@@ -69,7 +69,14 @@ function randomTeam(exclude = []) {
 function typeBadge(t) {
   return `<span class="tbadge" style="background:${TYPES[t].color}">${TYPES[t].ko}</span>`;
 }
+function maskOf(sp, entry) {
+  if (!sp || !sp.masks || !sp.masks.length || !entry || typeof entry === 'string') return null;
+  const i = entry.mask | 0;
+  return sp.masks[Math.min(sp.masks.length - 1, Math.max(0, i))];
+}
 function shownForm(sp, entry) {
+  const mask = maskOf(sp, entry);
+  if (mask) return mask;
   const forms = megaForms(sp);
   if (entry && typeof entry !== 'string' && forms.length) return forms[Math.min(forms.length - 1, entry.mega | 0)];
   return sp.primal || sp.crown || sp;
@@ -86,6 +93,7 @@ function dexQueryHit(sp, view, q) {
   if (sp.egg && (compact.includes('digimon') || q.includes('디지몬'))) return true;
   const ql = q.toLowerCase();
   if (sp.name.includes(q) || view.name.includes(q) || sp.key.includes(ql)) return true;
+  if ((sp.masks || []).some(f => f.name.includes(q) || (f.label && f.label.includes(q)))) return true;
   return (sp.megas || []).some(f => f.name.includes(q) || (f.label && f.label.includes(q)));
 }
 function matchesDex(sp) {
@@ -280,6 +288,10 @@ function renderDetail(key) {
   const ab = ABILITIES[view.ability];
   const gainedAt = form && form.gainMove ? entry.moves.findIndex(id => MOVES[id] && !MOVES[id].sig) : -1;
   const gainSlot = gainedAt >= 0 ? gainedAt : (form && form.gainMove ? entry.moves.length - 1 : -1);
+  const mask = maskOf(sp, ti >= 0 ? entry : null);
+  const maskBtns = (sp.masks || []).map((f, i) =>
+    `<button class="small mask-btn${(entry.mask | 0) === i ? ' on' : ''}" data-mask="${i}">${f.label}</button>`
+  ).join('');
   const moveIds = entry.moves.map((id, i) => i === gainSlot ? form.gainMove : id);
   const box = $('#dexDetail');
   const megaBtns = forms.map((f, i) =>
@@ -312,8 +324,10 @@ function renderDetail(key) {
     </div>
     <div class="dd-ability"><b>특성 · ${ab.name}</b>${ab.desc}</div>
     ${(megaBtns || evoHint) ? `<div class="mega-row">${megaBtns}<span class="hint" style="margin:0">${evoHint}</span></div>` : ''}
+    ${maskBtns ? `<div class="mega-row">${maskBtns}<span class="hint" style="margin:0">${ti >= 0 ? '가면을 고르면 타입과 특성이 바뀐다. T키로 테라스탈하면 그 가면의 모습이 되고 초상투영이 발동한다.' : '팀에 넣은 뒤 가면을 고른다.'}</span></div>` : ''}
     ${ti >= 0 ? `<div class="mega-row">${BURST_LIMITS.map(([id, label]) => `<button class="small limit-btn${(entry.limit || '') === id ? ' on' : ''}" data-limit="${id}">${label}</button>`).join('')}<span class="hint" style="margin:0">CPU가 조종할 때만. 고른 행동만 메가·거다이맥스·Z·테라 중에서 씁니다.</span></div>` : ''}
-    ${ti >= 0 ? `<div class="mega-row tera-row"><span class="hint" style="margin:0">테라타입 · T키, 팀당 1회</span>${Object.keys(TYPES).filter(t => t !== 'none').map(t => `<button class="small tera-btn${(entry.tera || sp.types[0]) === t ? ' on' : ''}" data-tera="${t}" style="--tc:${TYPES[t].color}">${TYPES[t].ko}</button>`).join('')}</div>` : ''}
+    ${ti >= 0 && sp.masks ? `<div class="mega-row tera-row"><span class="hint" style="margin:0">테라타입은 ${TYPES[(mask || sp.masks[entry.mask | 0] || sp.masks[0]).tera].ko}로 고정 · T키, 팀당 1회</span></div>` : ''}
+    ${ti >= 0 && !sp.masks ? `<div class="mega-row tera-row"><span class="hint" style="margin:0">테라타입 · T키, 팀당 1회</span>${Object.keys(TYPES).filter(t => t !== 'none').map(t => `<button class="small tera-btn${(entry.tera || sp.types[0]) === t ? ' on' : ''}" data-tera="${t}" style="--tc:${TYPES[t].color}">${TYPES[t].ko}</button>`).join('')}</div>` : ''}
     <div class="stats">${labels.map((l, i) => {
       const baseN = i === 0 && view.gmax ? view.base[i] * 2 : view.base[i];
       const pct = Math.min(100, baseN / 180 * 100);
@@ -324,14 +338,25 @@ function renderDetail(key) {
     <div class="dd-moves">${moveIds.map((id, i) => {
       const mv = MOVES[id];
       const locked = i === gainSlot;
-      return `<div class="dd-move" style="--tc:${TYPES[mv.type].color}" data-slot="${i}"><b>${mv.name}${ti >= 0 && !locked ? ' <span class="reroll">↻</span>' : ''}</b>` +
-        `<span>${TYPES[mv.type].ko} · ${KIND_KO[mv.kind] || '기술'} · 위력 ${mv.power}${mv.rollHits ? ' · 2~5발' : ''} · PP ${mv.pp}</span>` +
+      const showType = mv.mask && mask ? mask.cudgel : mv.type;
+      return `<div class="dd-move" style="--tc:${TYPES[showType].color}" data-slot="${i}"><b>${mv.name}${ti >= 0 && !locked ? ' <span class="reroll">↻</span>' : ''}</b>` +
+        `<span>${TYPES[showType].ko} · ${KIND_KO[mv.kind] || '기술'} · 위력 ${mv.power}${mv.rollHits ? ' · 2~5발' : ''} · PP ${mv.pp}</span>` +
         `<span class="fx">${moveText(mv)}</span></div>`;
     }).join('')}</div>`;
   box.querySelector('.pic').appendChild(spriteImg(view.id));
   if (ti >= 0) {
     box.querySelectorAll('.mega-btn').forEach(b => {
       b.onclick = () => { roster()[ti].mega = +b.dataset.mega; Sound.play('select'); renderSlots(); renderDetail(key); };
+    });
+    box.querySelectorAll('.mask-btn').forEach(b => {
+      b.onclick = () => {
+        const i = +b.dataset.mask;
+        roster()[ti].mask = i;
+        roster()[ti].tera = sp.masks[i].tera;
+        Sound.play('select');
+        renderSlots();
+        renderDetail(key);
+      };
     });
     box.querySelectorAll('.limit-btn').forEach(b => {
       b.onclick = () => { roster()[ti].limit = b.dataset.limit; Sound.play('select'); renderSlots(); renderDetail(key); };
@@ -926,8 +951,9 @@ function updateHUD() {
     el.classList.toggle('ally', allySlots.includes(i) && i !== p.active);
     el.classList.toggle('fainted', m.fainted);
     const img = el._img;
-    const id = String(m.sp.id);
-    if (img && img.dataset.id !== id) { img.dataset.id = id; setSprite(img, m.sp.id, false); }
+    const sid = m.sp.sprite || m.sp.id;
+    const id = String(sid);
+    if (img && img.dataset.id !== id) { img.dataset.id = id; setSprite(img, sid, false); }
     const r = m.maxHp ? m.hp / m.maxHp : 0;
     setCss(el._bar, 'width', r * 100 + '%');
     setCss(el._bar, 'background', hpColor(r));
